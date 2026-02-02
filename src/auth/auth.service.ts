@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterUserDto } from 'src/dto/auth/registerUser.dto';
 import { UserService } from 'src/user/user.service';
@@ -8,11 +8,12 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async registerUser(registerDto: RegisterUserDto) {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
@@ -20,6 +21,7 @@ export class AuthService {
       ...registerDto,
       password: hashedPassword,
     });
+    this.logger.log(`User registered: ${user.email} (ID: ${user._id})`);
     const tokens = await this.getTokens(user._id.toString(), user.role);
     await this.updateRefreshToken(user._id.toString(), tokens.refresh_token);
     return tokens;
@@ -27,6 +29,7 @@ export class AuthService {
 
   async loginUser(loginDto: LoginUserDto) {
     const user = await this.userService.loginUser(loginDto);
+    this.logger.log(`User logged in: ${user.email} (ID: ${user._id})`);
     const tokens = await this.getTokens(user._id.toString(), user.role);
     await this.updateRefreshToken(user._id.toString(), tokens.refresh_token);
     return tokens;

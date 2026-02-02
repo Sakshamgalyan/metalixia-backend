@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Post,
   Req,
   Res,
@@ -17,7 +18,26 @@ import { Public } from './decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  private readonly logger = new Logger(AuthController.name);
+  constructor(private readonly authService: AuthService) { }
+
+  private setCookies(
+    res: Response,
+    tokens: { access_token: string; refresh_token: string },
+  ) {
+    res.cookie('access_token', tokens.access_token, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: true,
+      maxAge: 15 * 60 * 1000,
+    });
+    res.cookie('refresh_token', tokens.refresh_token, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+  }
 
   @Public()
   @Post('register')
@@ -25,9 +45,10 @@ export class AuthController {
     try {
       const tokens = await this.authService.registerUser(registerDto);
       this.setCookies(res, tokens);
+      this.logger.log(`User ${registerDto.email} registered successfully`);
       return res.send({ message: 'User registered successfully' });
     } catch (error) {
-      console.log(error);
+      this.logger.error(`Registration failed: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -38,8 +59,10 @@ export class AuthController {
     try {
       const tokens = await this.authService.loginUser(loginDto);
       this.setCookies(res, tokens);
+      this.logger.log(`User ${loginDto.identifier} logged in successfully`);
       return res.send({ message: 'User logged in successfully' });
     } catch (error) {
+      this.logger.error(`Login failed: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -82,26 +105,8 @@ export class AuthController {
       };
       return res.send(user);
     } catch (error) {
-      console.log(error);
+      this.logger.error(`Profile fetch failed: ${error.message}`, error.stack);
       throw error;
     }
-  }
-
-  private setCookies(
-    res: Response,
-    tokens: { access_token: string; refresh_token: string },
-  ) {
-    res.cookie('access_token', tokens.access_token, {
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: true, // Should be false for localhost if not https, but usually ok with modern browsers on localhost or if careful. User used true.
-      maxAge: 15 * 60 * 1000, // 15 minutes
-    });
-    res.cookie('refresh_token', tokens.refresh_token, {
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
   }
 }
