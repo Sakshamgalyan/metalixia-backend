@@ -99,14 +99,7 @@ export class AuthController {
   @Get('profile')
   async profile(@Req() req: any, @Res() res: Response) {
     try {
-      const user = {
-        id: req.user.sub,
-        role: req.user.role,
-        name: req.user.name,
-        email: req.user.email,
-        post: req.user.post,
-        mobileNo: req.user.mobileNo,
-      };
+      const user = await this.authService.getProfile(req.user.sub);
       return res.send({ user, message: 'Profile fetched successfully', status: 'success' });
     } catch (error) {
       this.logger.error(`Profile fetch failed: ${error.message}`, error.stack);

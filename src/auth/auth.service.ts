@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterUserDto } from 'src/dto/auth/registerUser.dto';
 import { UserService } from 'src/user/user.service';
@@ -13,7 +18,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   async registerUser(registerDto: RegisterUserDto) {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
@@ -92,5 +97,21 @@ export class AuthService {
       access_token: accessToken,
       refresh_token: refreshToken,
     };
+  }
+
+  async getProfile(userId: string) {
+    const data = await this.userService.findById(userId);
+    if (!data) {
+      throw new UnauthorizedException('User not found');
+    }
+    const user = {
+      id: data._id,
+      name: data.name,
+      post: data.post,
+      email: data.email,
+      mobileNo: data.mobileNo,
+      role: data.role,
+    };
+    return user;
   }
 }
