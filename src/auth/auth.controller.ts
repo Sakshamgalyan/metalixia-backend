@@ -19,7 +19,7 @@ import { Public } from './decorators/public.decorator';
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   private setCookies(
     res: Response,
@@ -27,13 +27,13 @@ export class AuthController {
   ) {
     res.cookie('access_token', tokens.access_token, {
       httpOnly: true,
-      sameSite: 'strict',
+      sameSite: 'none',
       secure: true,
       maxAge: 15 * 60 * 1000,
     });
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
-      sameSite: 'strict',
+      sameSite: 'none',
       secure: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -46,7 +46,10 @@ export class AuthController {
       const tokens = await this.authService.registerUser(registerDto);
       this.setCookies(res, tokens);
       this.logger.log(`User ${registerDto.email} registered successfully`);
-      return res.send({ message: 'User registered successfully', status: 'success' });
+      return res.send({
+        message: 'User registered successfully',
+        status: 'success',
+      });
     } catch (error) {
       this.logger.error(`Registration failed: ${error.message}`, error.stack);
       throw error;
@@ -60,7 +63,10 @@ export class AuthController {
       const tokens = await this.authService.loginUser(loginDto);
       this.setCookies(res, tokens);
       this.logger.log(`User ${loginDto.identifier} logged in successfully`);
-      return res.send({ message: 'User logged in successfully', status: 'success' });
+      return res.send({
+        message: 'User logged in successfully',
+        status: 'success',
+      });
     } catch (error) {
       this.logger.error(`Login failed: ${error.message}`, error.stack);
       throw error;
@@ -87,7 +93,10 @@ export class AuthController {
     try {
       const tokens = await this.authService.refreshTokens(refreshToken);
       this.setCookies(res, tokens);
-      return res.send({ message: 'Token refreshed successfully', status: 'success' });
+      return res.send({
+        message: 'Token refreshed successfully',
+        status: 'success',
+      });
     } catch (error) {
       res.clearCookie('access_token');
       res.clearCookie('refresh_token');
@@ -100,7 +109,11 @@ export class AuthController {
   async profile(@Req() req: any, @Res() res: Response) {
     try {
       const user = await this.authService.getProfile(req.user.sub);
-      return res.send({ user, message: 'Profile fetched successfully', status: 'success' });
+      return res.send({
+        user,
+        message: 'Profile fetched successfully',
+        status: 'success',
+      });
     } catch (error) {
       this.logger.error(`Profile fetch failed: ${error.message}`, error.stack);
       throw error;
