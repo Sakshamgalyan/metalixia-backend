@@ -53,7 +53,6 @@ describe('AuthController', () => {
       const registerDto = {
         name: 'Test',
         email: 'test@example.com',
-        username: 'test',
         password: 'password',
         mobileNo: '1234567890',
         post: 'dev',

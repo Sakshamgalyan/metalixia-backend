@@ -46,7 +46,7 @@ export class AuthController {
       const tokens = await this.authService.registerUser(registerDto);
       this.setCookies(res, tokens);
       this.logger.log(`User ${registerDto.email} registered successfully`);
-      return res.send({ message: 'User registered successfully' });
+      return res.send({ message: 'User registered successfully', status: 'success' });
     } catch (error) {
       this.logger.error(`Registration failed: ${error.message}`, error.stack);
       throw error;
@@ -60,7 +60,7 @@ export class AuthController {
       const tokens = await this.authService.loginUser(loginDto);
       this.setCookies(res, tokens);
       this.logger.log(`User ${loginDto.identifier} logged in successfully`);
-      return res.send({ message: 'User logged in successfully' });
+      return res.send({ message: 'User logged in successfully', status: 'success' });
     } catch (error) {
       this.logger.error(`Login failed: ${error.message}`, error.stack);
       throw error;
@@ -74,7 +74,7 @@ export class AuthController {
     await this.authService.logout(userId);
     res.clearCookie('access_token');
     res.clearCookie('refresh_token');
-    return res.send({ message: 'Logged out successfully' });
+    return res.send({ message: 'Logged out successfully', status: 'success' });
   }
 
   @Public()
@@ -87,7 +87,7 @@ export class AuthController {
     try {
       const tokens = await this.authService.refreshTokens(refreshToken);
       this.setCookies(res, tokens);
-      return res.send({ message: 'Token refreshed successfully' });
+      return res.send({ message: 'Token refreshed successfully', status: 'success' });
     } catch (error) {
       res.clearCookie('access_token');
       res.clearCookie('refresh_token');
@@ -102,8 +102,12 @@ export class AuthController {
       const user = {
         id: req.user.sub,
         role: req.user.role,
+        name: req.user.name,
+        email: req.user.email,
+        post: req.user.post,
+        mobileNo: req.user.mobileNo,
       };
-      return res.send(user);
+      return res.send({ user, message: 'Profile fetched successfully', status: 'success' });
     } catch (error) {
       this.logger.error(`Profile fetch failed: ${error.message}`, error.stack);
       throw error;

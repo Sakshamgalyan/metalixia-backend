@@ -56,7 +56,6 @@ describe('UserService', () => {
       const registerDto = {
         name: 'Test User',
         email: 'test@example.com',
-        username: 'test',
         password: 'password',
         mobileNo: '1234567890',
         post: 'dev',
@@ -73,7 +72,6 @@ describe('UserService', () => {
       const registerDto = {
         name: 'Test User',
         email: 'test@example.com',
-        username: 'test',
         password: 'password',
         mobileNo: '1234567890',
         post: 'dev',

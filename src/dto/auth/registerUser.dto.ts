@@ -8,9 +8,6 @@ export class RegisterUserDto {
   mobileNo: string;
 
   @IsString()
-  username: string;
-
-  @IsString()
   post: string;
 
   @IsEmail()
@@ -21,5 +18,5 @@ export class RegisterUserDto {
 
   @IsOptional()
   @IsString()
-  role: string;
+  role: string = 'user';
 }

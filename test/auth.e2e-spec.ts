@@ -43,7 +43,6 @@ describe('AuthController (e2e)', () => {
   const registerDto = {
     name: 'E2E User',
     email: 'e2e@example.com',
-    username: 'e2eUser',
     password: 'password123',
     mobileNo: '9876543210',
     post: 'Tester',

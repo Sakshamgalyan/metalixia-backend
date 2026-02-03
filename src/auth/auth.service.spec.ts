@@ -74,7 +74,6 @@ describe('AuthService', () => {
         name: 'Test',
         email: 'test@example.com',
         password: 'password',
-        username: 'test',
         mobileNo: '1234567890',
         post: 'dev',
         role: 'user',

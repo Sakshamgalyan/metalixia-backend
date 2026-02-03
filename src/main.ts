@@ -20,10 +20,13 @@ async function bootstrap() {
 
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-  app.enableCors();
+  app.enableCors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+  });
 
   const port = process.env.PORT ?? 5000;
   await app.listen(port);
-  logger.log(`Application is running on: http://localhost:${port}`);
+  logger.log(`Application is running on: Domain:${port}`);
 }
 bootstrap();

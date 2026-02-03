@@ -34,7 +34,6 @@ export class UserService {
     const user = await this.registerUserModel.findOne({
       $or: [
         { email: loginDto.identifier },
-        { username: loginDto.identifier },
         { mobileNo: loginDto.identifier },
       ],
     });
