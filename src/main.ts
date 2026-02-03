@@ -21,7 +21,7 @@ async function bootstrap() {
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://metalixia-fe.vercel.app'],
+    origin: ['http://localhost:3000', 'https://metalixia-frontend.vercel.app'],
     credentials: true,
   });
 
