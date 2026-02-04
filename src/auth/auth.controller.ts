@@ -41,7 +41,7 @@ export class AuthController {
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
       sameSite: 'none',
-      domain: '.vercel.app',
+      domain,
       secure: true,
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
