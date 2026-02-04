@@ -33,12 +33,14 @@ export class AuthController {
       httpOnly: true,
       sameSite: 'none',
       secure: true,
+      path: '/',
       maxAge: 15 * 60 * 1000,
     });
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
       sameSite: 'none',
       secure: true,
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
   }
