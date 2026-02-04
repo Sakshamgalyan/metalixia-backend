@@ -97,12 +97,12 @@ export class UserService {
     });
 
     return {
-      data: data,
-      meta: {
+      pagination: {
         total,
         page,
         totalPages: Math.ceil(total / size),
       },
+      data: data,
     };
   }
 }

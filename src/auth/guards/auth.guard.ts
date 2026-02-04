@@ -34,7 +34,7 @@ export class AuthGuard implements CanActivate {
     }
     try {
       const payload = await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get<string>('JWT_SECRETKEY'),
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
       request['user'] = payload;
     } catch {
@@ -44,6 +44,6 @@ export class AuthGuard implements CanActivate {
   }
 
   private extractTokenFromCookie(request: Request): string | undefined {
-    return request.cookies?.access_token;
+    return request.cookies?.refresh_token;
   }
 }

@@ -29,9 +29,11 @@ export class AuthController {
     res: Response,
     tokens: { access_token: string; refresh_token: string },
   ) {
+    const domain = this.configService.get<string>('COOKIE_DOMAIN');
     res.cookie('access_token', tokens.access_token, {
       httpOnly: true,
       sameSite: 'none',
+      domain,
       secure: true,
       path: '/',
       maxAge: 15 * 60 * 1000,
@@ -39,6 +41,7 @@ export class AuthController {
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
       sameSite: 'none',
+      domain: '.vercel.app',
       secure: true,
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -86,7 +89,9 @@ export class AuthController {
     await this.authService.logout(userId);
     res.clearCookie('access_token');
     res.clearCookie('refresh_token');
-    return res.status(200).send({ message: 'Logged out successfully', status: 'success' });
+    return res
+      .status(200)
+      .send({ message: 'Logged out successfully', status: 'success' });
   }
 
   @Public()
@@ -114,6 +119,16 @@ export class AuthController {
   @Get('profile')
   async profile(@Req() req: any, @Res() res: Response) {
     try {
+      const accessToken = req.cookies['access_token'];
+      if (!accessToken) {
+        const refreshToken = req.cookies['refresh_token'];
+        if (refreshToken) {
+          const tokens = await this.authService.refreshTokens(refreshToken);
+          this.setCookies(res, tokens);
+        } else {
+          throw new UnauthorizedException('Unauthorized');
+        }
+      }
       const user = await this.authService.getProfile(req.user.sub);
       return res.status(200).send({
         user,
@@ -122,6 +137,8 @@ export class AuthController {
       });
     } catch (error) {
       this.logger.error(`Profile fetch failed: ${error.message}`, error.stack);
+      res.clearCookie('access_token');
+      res.clearCookie('refresh_token');
       throw error;
     }
   }
