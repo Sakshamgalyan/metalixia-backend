@@ -52,7 +52,7 @@ export class AuthController {
       const tokens = await this.authService.registerUser(registerDto);
       this.setCookies(res, tokens);
       this.logger.log(`User ${registerDto.email} registered successfully`);
-      return res.send({
+      return res.status(201).send({
         message: 'User registered successfully',
         status: 'success',
       });
@@ -69,7 +69,7 @@ export class AuthController {
       const tokens = await this.authService.loginUser(loginDto);
       this.setCookies(res, tokens);
       this.logger.log(`User ${loginDto.identifier} logged in successfully`);
-      return res.send({
+      return res.status(200).send({
         message: 'User logged in successfully',
         status: 'success',
       });
@@ -86,7 +86,7 @@ export class AuthController {
     await this.authService.logout(userId);
     res.clearCookie('access_token');
     res.clearCookie('refresh_token');
-    return res.send({ message: 'Logged out successfully', status: 'success' });
+    return res.status(200).send({ message: 'Logged out successfully', status: 'success' });
   }
 
   @Public()
@@ -99,7 +99,7 @@ export class AuthController {
     try {
       const tokens = await this.authService.refreshTokens(refreshToken);
       this.setCookies(res, tokens);
-      return res.send({
+      return res.status(200).send({
         message: 'Token refreshed successfully',
         status: 'success',
       });
@@ -115,7 +115,7 @@ export class AuthController {
   async profile(@Req() req: any, @Res() res: Response) {
     try {
       const user = await this.authService.getProfile(req.user.sub);
-      return res.send({
+      return res.status(200).send({
         user,
         message: 'Profile fetched successfully',
         status: 'success',

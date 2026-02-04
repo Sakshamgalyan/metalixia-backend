@@ -9,17 +9,18 @@ import { User } from './entities/RegisterUser.entity';
 import { Model } from 'mongoose';
 import { LoginUserDto } from 'src/dto/auth/loginUser.dto';
 import * as bcrypt from 'bcrypt';
+import { GetEmployeesDto } from 'src/dto/admin/GetEmployees.dto';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name)
-    private registerUserModel: Model<User>,
+    private userModel: Model<User>,
   ) {}
 
   async createUser(registerDto: RegisterUserDto) {
     try {
-      const user = await this.registerUserModel.create(registerDto);
+      const user = await this.userModel.create(registerDto);
       return user;
     } catch (error: any) {
       if (error.code === 11000) {
@@ -31,11 +32,8 @@ export class UserService {
   }
 
   async loginUser(loginDto: LoginUserDto) {
-    const user = await this.registerUserModel.findOne({
-      $or: [
-        { email: loginDto.identifier },
-        { mobileNo: loginDto.identifier },
-      ],
+    const user = await this.userModel.findOne({
+      $or: [{ email: loginDto.identifier }, { mobileNo: loginDto.identifier }],
     });
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -51,12 +49,60 @@ export class UserService {
   }
 
   async updateRefreshToken(userId: string, refreshToken: string | null) {
-    await this.registerUserModel.findByIdAndUpdate(userId, {
+    await this.userModel.findByIdAndUpdate(userId, {
       refreshToken: refreshToken,
     });
   }
 
   async findById(userId: string) {
-    return this.registerUserModel.findById(userId);
+    return this.userModel.findById(userId);
+  }
+
+  async findByEmployee(getEmployeesDto: GetEmployeesDto) {
+    const { pageNo, limit, name, mobileNo, post, email, role, from, to } =
+      getEmployeesDto;
+
+    const query: any = {};
+    if (role) {
+      query.role = role;
+    }
+    if (name && name.length > 0) {
+      query.name = { $in: name };
+    }
+    if (mobileNo && mobileNo.length > 0) {
+      query.mobileNo = { $in: mobileNo };
+    }
+    if (email && email.length > 0) {
+      query.email = { $in: email };
+    }
+    const page = pageNo || 1;
+    const size = limit || 10;
+    const skip = (page - 1) * size;
+    const users = await this.userModel
+      .find(query)
+      .skip(skip)
+      .limit(size)
+      .exec();
+    const total = await this.userModel.countDocuments(query);
+
+    const data = users.map((user) => {
+      return {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        mobileNo: user.mobileNo,
+        post: user.post,
+        role: user.role,
+      };
+    });
+
+    return {
+      data: data,
+      meta: {
+        total,
+        page,
+        totalPages: Math.ceil(total / size),
+      },
+    };
   }
 }

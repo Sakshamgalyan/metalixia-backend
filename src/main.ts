@@ -20,9 +20,13 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor());
 
   app.use(cookieParser());
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://metalixia-frontend.vercel.app'],
+    origin: [
+      'http://localhost:3000',
+      'https://metalixia-frontend.vercel.app',
+      "https://metalixia-frontend.onrender.com",
+    ],
     credentials: true,
   });
 
