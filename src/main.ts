@@ -10,6 +10,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+  (app as any).set('trust proxy', 1);
 
   const jwtService = app.get(JwtService);
   const configService = app.get(ConfigService);
