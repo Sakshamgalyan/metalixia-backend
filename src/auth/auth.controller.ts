@@ -29,11 +29,9 @@ export class AuthController {
     res: Response,
     tokens: { access_token: string; refresh_token: string },
   ) {
-    const domain = this.configService.get<string>('COOKIE_DOMAIN');
     res.cookie('access_token', tokens.access_token, {
       httpOnly: true,
       sameSite: 'none',
-      domain,
       secure: true,
       path: '/',
       maxAge: 15 * 60 * 1000,
@@ -41,7 +39,6 @@ export class AuthController {
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
       sameSite: 'none',
-      domain,
       secure: true,
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
