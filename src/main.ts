@@ -10,17 +10,9 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
-  (app as any).set('trust proxy', 1);
-
-  const jwtService = app.get(JwtService);
-  const configService = app.get(ConfigService);
-  const reflector = app.get(Reflector);
-
-  app.useGlobalGuards(new AuthGuard(jwtService, configService, reflector));
-  app.useGlobalInterceptors(new LoggingInterceptor());
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   app.use(cookieParser());
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({
     origin: [
       'http://localhost:3000',
@@ -29,6 +21,15 @@ async function bootstrap() {
     ],
     credentials: true,
   });
+  const jwtService = app.get(JwtService);
+  const configService = app.get(ConfigService);
+  const reflector = app.get(Reflector);
+
+  app.useGlobalGuards(new AuthGuard(jwtService, configService, reflector));
+  app.useGlobalInterceptors(new LoggingInterceptor());
+
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  
 
   const port = process.env.PORT ?? 5000;
   await app.listen(port);

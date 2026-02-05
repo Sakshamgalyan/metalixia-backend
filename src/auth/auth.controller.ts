@@ -29,10 +29,11 @@ export class AuthController {
     res: Response,
     tokens: { access_token: string; refresh_token: string },
   ) {
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
     res.cookie('access_token', tokens.access_token, {
       httpOnly: true,
-      sameSite: 'none',
-      secure: true,
+      sameSite: isProduction ? 'none' : 'lax',
+      secure: isProduction,
       path: '/',
       maxAge: 15 * 60 * 1000,
     });
