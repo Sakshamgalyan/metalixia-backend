@@ -111,6 +111,7 @@ export class AuthService {
       email: data.email,
       mobileNo: data.mobileNo,
       role: data.role,
+      employeeId: data.employeeId,
     };
     return user;
   }

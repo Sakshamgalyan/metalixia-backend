@@ -10,6 +10,7 @@ import { Model } from 'mongoose';
 import { LoginUserDto } from 'src/dto/auth/loginUser.dto';
 import * as bcrypt from 'bcrypt';
 import { GetEmployeesDto } from 'src/dto/admin/GetEmployees.dto';
+import { UpdateUserDto } from 'src/dto/admin/UpdateUser.dto';
 
 @Injectable()
 export class UserService {
@@ -59,25 +60,18 @@ export class UserService {
   }
 
   async findByEmployee(getEmployeesDto: GetEmployeesDto) {
-    const { pageNo, limit, name, mobileNo, post, email, role, from, to } =
-      getEmployeesDto;
+    const { page, limit, post, role } = getEmployeesDto;
 
     const query: any = {};
-    if (role) {
-      query.role = role;
+    if (role && role.length > 0) {
+      query.role = { $in: role };
     }
-    if (name && name.length > 0) {
-      query.name = { $in: name };
+    if (post && post.length > 0) {
+      query.post = { $in: post };
     }
-    if (mobileNo && mobileNo.length > 0) {
-      query.mobileNo = { $in: mobileNo };
-    }
-    if (email && email.length > 0) {
-      query.email = { $in: email };
-    }
-    const page = pageNo || 1;
+    const pageNo = page || 1;
     const size = limit || 10;
-    const skip = (page - 1) * size;
+    const skip = (pageNo - 1) * size;
     const users = await this.userModel
       .find(query)
       .skip(skip)
@@ -93,16 +87,34 @@ export class UserService {
         mobileNo: user.mobileNo,
         post: user.post,
         role: user.role,
+        employeeId: user.employeeId,
       };
     });
 
     return {
       pagination: {
         total,
-        page,
+        pageNo,
         totalPages: Math.ceil(total / size),
       },
       data: data,
     };
+  }
+
+  async updateUser(updateEmployeeDto: UpdateUserDto) {
+    const user = await this.userModel.findByIdAndUpdate(updateEmployeeDto._id, {
+      name: updateEmployeeDto.name,
+      email: updateEmployeeDto.email,
+      mobileNo: updateEmployeeDto.mobileNo,
+      post: updateEmployeeDto.post,
+      role: updateEmployeeDto.role,
+      password: updateEmployeeDto.password,
+    });
+    return user;
+  }
+
+  async deleteUser(id: string) {
+    const user = await this.userModel.findByIdAndDelete(id);
+    return user;
   }
 }
