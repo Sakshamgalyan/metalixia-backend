@@ -39,8 +39,8 @@ export class AuthController {
     });
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
-      sameSite: 'none',
-      secure: true,
+      sameSite: isProduction ? 'none' : 'lax',
+      secure: isProduction,
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
