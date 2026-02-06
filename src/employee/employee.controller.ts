@@ -11,6 +11,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/dto/Role/Role.dto';
 import { ReportDeleteDto } from 'src/dto/employee/reportDelete.dto';
+import { ReportApproveDto } from 'src/dto/employee/ReportApprove.dto';
 
 @Controller('employee')
 export class EmployeeController {
@@ -57,6 +58,13 @@ export class EmployeeController {
   ) {
     return this.employeeService.getReports(Number(page), Number(limit));
   }
+  
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.TEMP_ADMIN)
+  @Post('approve-report')
+  async approveReport(@Body() reportApproveDto: ReportApproveDto) {
+    return this.employeeService.approveReport(reportApproveDto);
+  }
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.TEMP_ADMIN, Role.MANAGER, Role.QUALITY)
@@ -70,6 +78,13 @@ export class EmployeeController {
   @Get('scheduled-deleted-report')
   async scheduledDeletedReport() {
     return this.employeeService.scheduledDeletedReport();
+  }
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @Get('get-all-reports')
+  async getAllReport() {
+    return this.employeeService.getAllReports();
   }
 
   @UseGuards(AuthGuard, RolesGuard)

@@ -5,26 +5,29 @@ export type ReportDocument = Report & Document;
 
 @Schema({ timestamps: { createdAt: 'uploadedTime', updatedAt: 'updatedTime' } })
 export class Report {
-    @Prop({ required: true })
-    name: string;
+  @Prop({ required: true })
+  name: string;
 
-    @Prop({ required: true })
-    fileType: string;
+  @Prop({ required: true })
+  fileType: string;
 
-    @Prop({ required: true })
-    location: string;
+  @Prop({ required: true })
+  location: string;
 
-    @Prop({ required: true })
-    employeeId: string;
+  @Prop({ required: true })
+  employeeId: string;
 
-    @Prop({ required: true })
-    originalName: string;
+  @Prop({ required: true, enum: ["pending", "approved", "rejected", "mailed"], default: "pending" })
+  status: string;
 
-    @Prop({ default: false })
-    isDeleted: boolean;
+  @Prop({ required: true })
+  originalName: string;
 
-    @Prop()
-    deletedAt: Date;
+  @Prop({ default: false })
+  isDeleted: boolean;
+
+  @Prop()
+  deletedAt: Date;
 }
 
 export const ReportSchema = SchemaFactory.createForClass(Report);

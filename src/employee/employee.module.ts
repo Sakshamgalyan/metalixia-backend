@@ -12,5 +12,6 @@ import { AuthModule } from 'src/auth/auth.module';
   ],
   controllers: [EmployeeController],
   providers: [EmployeeService],
+  exports: [MongooseModule],
 })
 export class EmployeeModule { }

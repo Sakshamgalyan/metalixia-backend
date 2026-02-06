@@ -1,98 +1,257 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Backend API Documentation
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This documentation provides an overview of the API endpoints available in the backend application, including their request payloads and responses.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Authentication (`/auth`)
 
-## Description
+### Register User
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+**POST** `/auth/register`
 
-## Project setup
+- **Description**: Registers a new user.
+- **Access**: Public
+- **Payload**: `RegisterUserDto`
+  ```json
+  {
+    "name": "string",
+    "mobileNo": "string",
+    "post": "string",
+    "email": "string (email format)",
+    "password": "string (min 6 chars)",
+    "role": "string (optional, default: 'user')"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "message": "User registered successfully",
+    "status": "success"
+  }
+  ```
 
-```bash
-$ yarn install
-```
+### Login User
 
-## Compile and run the project
+**POST** `/auth/login`
 
-```bash
-# development
-$ yarn run start
+- **Description**: Logs in a user. Sets `access_token` and `refresh_token` cookies.
+- **Access**: Public
+- **Payload**: `LoginUserDto`
+  ```json
+  {
+    "identifier": "string",
+    "password": "string (min 6 chars)"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "message": "User logged in successfully",
+    "status": "success"
+  }
+  ```
 
-# watch mode
-$ yarn run start:dev
+### Logout User
 
-# production mode
-$ yarn run start:prod
-```
+**POST** `/auth/logout`
 
-## Run tests
+- **Description**: Logs out the current user and clears cookies.
+- **Access**: Authenticated
+- **Payload**: None
+- **Response**:
+  ```json
+  {
+    "message": "Logged out successfully",
+    "status": "success"
+  }
+  ```
 
-```bash
-# unit tests
-$ yarn run test
+### Refresh Token
 
-# e2e tests
-$ yarn run test:e2e
+**POST** `/auth/refresh`
 
-# test coverage
-$ yarn run test:cov
-```
+- **Description**: Refreshes the access token using the refresh token cookie.
+- **Access**: Public (Requires `refresh_token` cookie)
+- **Payload**: None
+- **Response**:
+  ```json
+  {
+    "message": "Token refreshed successfully",
+    "status": "success"
+  }
+  ```
 
-## Deployment
+### Get Profile
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+**GET** `/auth/profile`
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+- **Description**: Retrieves the profile of the currently authenticated user.
+- **Access**: Authenticated
+- **Payload**: None
+- **Response**:
+  ```json
+  {
+    "user": { ... },
+    "message": "Profile fetched successfully",
+    "status": "success"
+  }
+  ```
 
-```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
-```
+---
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Admin (`/admin`)
 
-## Resources
+### Get Employees
 
-Check out a few resources that may come in handy when working with NestJS:
+**POST** `/admin/get-employees`
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- **Description**: Retrieves a list of employees based on filters.
+- **Access**: Authenticated (Roles: SUPER_ADMIN, REPORT_ADMIN, TEMP_ADMIN)
+- **Payload**: `GetEmployeesDto`
+  ```json
+  {
+    "page": "number (optional)",
+    "limit": "number (optional)",
+    "post": ["string"] (optional),
+    "role": ["string"] (optional)
+  }
+  ```
+- **Response**: JSON data representing the list of employees.
 
-## Support
+### Add Employee
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+**POST** `/admin/add-employee`
 
-## Stay in touch
+- **Description**: Adds a new employee.
+- **Access**: Authenticated (Roles: SUPER_ADMIN, REPORT_ADMIN, TEMP_ADMIN)
+- **Payload**: `AddEmployeeDto`
+  ```json
+  {
+    "name": "string",
+    "mobileNo": "string",
+    "post": "string",
+    "email": "string (email format)",
+    "password": "string (min 6 chars)",
+    "role": "string"
+  }
+  ```
+- **Response**: JSON data of the added employee.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### Update Employee
 
-## License
+**POST** `/admin/update-employee`
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- **Description**: Updates an existing employee's details.
+- **Access**: Authenticated (Roles: SUPER_ADMIN, REPORT_ADMIN, TEMP_ADMIN)
+- **Payload**: `UpdateEmployeeDto`
+  ```json
+  {
+    "id": "string",
+    "post": "string (optional)",
+    "role": "string (optional)",
+    "employeeId": "string"
+  }
+  ```
+- **Response**: JSON data of the updated employee.
+
+### Delete Employee
+
+**DELETE** `/admin/delete-employee/:id`
+
+- **Description**: Deletes an employee by ID.
+- **Access**: Authenticated (Roles: SUPER_ADMIN, REPORT_ADMIN, TEMP_ADMIN)
+- **Params**:
+  - `id`: string
+- **Response**: JSON data confirming deletion.
+
+---
+
+## Employee (`/employee`)
+
+### Upload Report
+
+**POST** `/employee/report-upload`
+
+- **Description**: Uploads report files (.pdf or .csv).
+- **Access**: Authenticated (Roles: SUPER_ADMIN, REPORT_ADMIN, TEMP_ADMIN, MANAGER, QUALITY)
+- **Payload**: `FormData`
+  - `files`: File[] (Max 10)
+  - `reportName`: string
+  - `employeeId`: string
+- **Response**: JSON data confirming upload.
+
+### Get Reports
+
+**GET** `/employee/get-reports`
+
+- **Description**: Retrieves a paginated list of reports.
+- **Access**: Authenticated (Roles: SUPER_ADMIN, REPORT_ADMIN, TEMP_ADMIN, MANAGER, QUALITY)
+- **Query Params**:
+  - `page`: number (default 1)
+  - `limit`: number (default 10)
+- **Response**: JSON data containing reports.
+
+### Delete Report
+
+**POST** `/employee/delete-report`
+
+- **Description**: Deletes a specific report.
+- **Access**: Authenticated (Roles: SUPER_ADMIN, REPORT_ADMIN, TEMP_ADMIN, MANAGER, QUALITY)
+- **Payload**: `ReportDeleteDto`
+  ```json
+  {
+    "reportId": "string"
+  }
+  ```
+- **Response**: JSON data confirming deletion.
+
+### Scheduled Deleted Report
+
+**GET** `/employee/scheduled-deleted-report`
+
+- **Description**: (Internal/Admin) Trigger for scheduled report deletion logic?
+- **Access**: Authenticated (Role: SUPER_ADMIN)
+- **Response**: JSON data.
+
+### Download Report
+
+**GET** `/employee/download-report/:reportId`
+
+- **Description**: Downloads a specific report file.
+- **Access**: Authenticated (Roles: SUPER_ADMIN, REPORT_ADMIN, TEMP_ADMIN, MANAGER, QUALITY)
+- **Params**:
+  - `reportId`: string
+- **Response**: File stream/download.
+
+### Abort Report
+
+**GET** `/employee/abort-report/:reportId`
+
+- **Description**: Aborts a report process.
+- **Access**: Authenticated (Role: SUPER_ADMIN)
+- **Params**:
+  - `reportId`: string
+- **Response**: JSON data.
+
+### Get Reports By Employee ID
+
+**GET** `/employee/get-reports-by-employee-id/:employeeId`
+
+- **Description**: Retrieves reports for a specific employee.
+- **Access**: Authenticated (Roles: SUPER_ADMIN, REPORT_ADMIN, TEMP_ADMIN, MANAGER, QUALITY)
+- **Params**:
+  - `employeeId`: string
+- **Query Params**:
+  - `page`: number (default 1)
+  - `limit`: number (default 10)
+- **Response**: JSON data.
+
+---
+
+## App (`/`)
+
+### Get Hello
+
+**GET** `/`
+
+- **Description**: Health check or basic greeting.
+- **Response**: `string`
