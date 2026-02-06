@@ -16,6 +16,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
+      'http://localhost:2000',
       'https://metalixia-frontend.vercel.app',
       "https://metalixia-frontend.onrender.com",
     ],

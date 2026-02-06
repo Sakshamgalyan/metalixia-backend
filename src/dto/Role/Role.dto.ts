@@ -4,6 +4,6 @@ export enum Role {
   TEMP_ADMIN = 'tempAdmin',
   EMPLOYEE = 'employee',
   MANAGER = 'manager',
-  QUALITY_ADMIN = 'qualityAdmin',
+  QUALITY = 'quality',
   USER = 'user',
 }
