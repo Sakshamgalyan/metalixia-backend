@@ -39,9 +39,9 @@ export class EmployeeService {
     };
   }
 
-  async getReports(page: number = 1, limit: number = 10) {
+  async getReports(page: number = 1, limit: number = 10, id: string) {
     const skip = (page - 1) * limit;
-    const query: any = { isDeleted: false };
+    const query: any = { isDeleted: false, employeeId: id };
 
     const [reports, total] = await Promise.all([
       this.reportModel
@@ -60,6 +60,7 @@ export class EmployeeService {
         ? new Date((report as any).uploadedTime).getTime()
         : Date.now(),
       fileType: report.fileType,
+      status: report.status,
     }));
 
     return {

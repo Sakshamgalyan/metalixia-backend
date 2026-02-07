@@ -51,12 +51,13 @@ export class EmployeeController {
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.TEMP_ADMIN, Role.MANAGER, Role.QUALITY)
-  @Get('get-reports')
+  @Get('get-reports/:id')
   async getReports(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Param('id') id: string,
   ) {
-    return this.employeeService.getReports(Number(page), Number(limit));
+    return this.employeeService.getReports(Number(page), Number(limit), id);
   }
   
   @UseGuards(AuthGuard, RolesGuard)
