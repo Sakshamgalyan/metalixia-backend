@@ -9,6 +9,9 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AdminModule } from './admin/admin.module';
 import { EmployeeModule } from './employee/employee.module';
 import { EmailModule } from './email/email.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { AttendanceModule } from './attendance/attendance.module';
+import { PayslipModule } from './payslip/payslip.module';
 
 @Module({
   imports: [
@@ -22,8 +25,22 @@ import { EmailModule } from './email/email.module';
     AdminModule,
     EmployeeModule,
     EmailModule,
+    MailerModule.forRoot({
+      transport: {
+        service: 'gmail',
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_APP_PASS,
+        },
+      },
+      defaults: {
+        from: '"Nest App" <[EMAIL_ADDRESS]>',
+      },
+    }),
+    PayslipModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
