@@ -7,6 +7,7 @@ import { ReportDeleteDto } from 'src/dto/employee/reportDelete.dto';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as fs from 'fs';
 import { ReportApproveDto } from 'src/dto/employee/ReportApprove.dto';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class EmployeeService {
@@ -14,6 +15,7 @@ export class EmployeeService {
 
   constructor(
     @InjectModel(Report.name) private reportModel: Model<ReportDocument>,
+    private readonly userService: UserService,
   ) {}
 
   async uploadReport(
@@ -87,15 +89,26 @@ export class EmployeeService {
       this.reportModel.countDocuments().exec(),
     ]);
 
-    const reportData = reports.map((report) => ({
-      id: report._id.toString(),
-      name: report.name.split('-')[0],
-      date: (report as any).uploadedTime
-        ? new Date((report as any).uploadedTime).getTime()
-        : Date.now(),
-      fileType: report.fileType,
-      status: report.status,
-    }));
+    const employees = await this.userService.getAllEmployees(
+      reports.map((report) => report.employeeId),
+    );
+
+    const reportData = reports.map((report) => {
+      const employee = employees.find(
+        (e) => e.employeeId === report.employeeId,
+      );
+      return {
+        id: report._id.toString(),
+        name: report.name.split('-')[0],
+        date: (report as any).uploadedTime
+          ? new Date((report as any).uploadedTime).getTime()
+          : Date.now(),
+        fileType: report.fileType,
+        status: report.status,
+        uploadedBy: employee ? employee.name : 'Unknown',
+        employeeId: report.employeeId,
+      };
+    });
 
     return {
       status: 'success',
@@ -109,7 +122,11 @@ export class EmployeeService {
   }
 
   async approveReport(reportApproveDto: ReportApproveDto) {
-    const report = await this.reportModel.findByIdAndUpdate(reportApproveDto.reportId, { status: reportApproveDto.status }).exec();
+    const report = await this.reportModel
+      .findByIdAndUpdate(reportApproveDto.reportId, {
+        status: reportApproveDto.status,
+      })
+      .exec();
     if (!report) {
       return {
         message: 'Report not found',
@@ -232,5 +249,43 @@ export class EmployeeService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async getMailedReports(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+    const query: any = { status: 'mailed', isDeleted: false };
+    const [reports, total] = await Promise.all([
+      this.reportModel
+        .find(query)
+        .sort({ uploadedTime: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.reportModel.countDocuments(query).exec(),
+    ]);
+
+    const reportData = reports.map((report) => ({
+      id: report._id.toString(),
+      name: report.name.split('-')[0],
+      date: (report as any).uploadedTime
+        ? new Date((report as any).uploadedTime).getTime()
+        : Date.now(),
+      fileType: report.fileType,
+      status: report.status,
+    }));
+
+    return {
+      status: 'success',
+      data: reportData,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+  async getEmployees(page: number = 1, limit: number = 1000) {
+    return this.userService.findByEmployee({ page, limit });
   }
 }

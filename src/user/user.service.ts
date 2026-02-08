@@ -117,4 +117,10 @@ export class UserService {
     const user = await this.userModel.findByIdAndDelete(id);
     return user;
   }
+
+  async getAllEmployees(employeeIds: string[]) {
+    return this.userModel
+      .find({ employeeId: { $in: employeeIds } })
+      .select('name employeeId');
+  }
 }

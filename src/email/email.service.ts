@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import SendGrid from '@sendgrid/mail';
+import * as fs from 'fs';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Email, EmailDocument } from './entities/email.schema';
@@ -17,17 +19,59 @@ export class EmailService {
     @InjectModel(Email.name) private emailModel: Model<EmailDocument>,
     @InjectModel(EmailTemplate.name)
     private templateModel: Model<EmailTemplateDocument>,
-  ) {}
+  ) {
+    if (process.env.SENDGRID_API_KEY) {
+      SendGrid.setApiKey(process.env.SENDGRID_API_KEY);
+    } else {
+      this.logger.warn('SENDGRID_API_KEY is not defined');
+    }
+  }
 
   async sendEmail(
     files: Array<Express.Multer.File>,
     sendEmailDto: SendEmailDto,
     senderId: string,
   ) {
-    // In a real app, this would use a mailer service (e.g., Nodemailer, SendGrid)
-    // For now, we simulate sending and just store the record.
-
     const attachments = files ? files.map((file) => file.path) : [];
+
+    try {
+      if (!process.env.SENDGRID_FROM) {
+        throw new Error('SENDGRID_FROM is not defined');
+      }
+
+      // Updating to read file content for SendGrid
+      const sgAttachments = (files || [])
+        .map((file) => {
+          try {
+            return {
+              content: fs.readFileSync(file.path).toString('base64'),
+              filename: file.originalname,
+              type: file.mimetype,
+              disposition: 'attachment',
+            };
+          } catch (err) {
+            this.logger.error(
+              `Failed to read file ${file.path}: ${err.message}`,
+            );
+            return null;
+          }
+        })
+        .filter((attachment) => attachment !== null) as any; // Cast as any because SendGrid types might conflict slightly or TS inference with null check needs improvement
+
+      await SendGrid.send({
+        to: sendEmailDto.to,
+        from: process.env.SENDGRID_FROM,
+        subject: sendEmailDto.subject,
+        html: sendEmailDto.message,
+        attachments: sgAttachments,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send email to ${sendEmailDto.to}: ${error.message}`,
+        error?.response?.body,
+      );
+      throw error;
+    }
 
     const newEmail = new this.emailModel({
       ...sendEmailDto,
