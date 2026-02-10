@@ -19,9 +19,6 @@ async function metalixia() {
       'http://localhost:3000',
       'https://metalixia-fe.onrender.com',
       "https://dashboard.galyan.in",
-      "https://galyan.in",
-      "http://dashboard.galyan.in",
-      "http://galyan.in",
     ],
     credentials: true,
   });
