@@ -17,7 +17,7 @@ async function metalixia() {
   app.enableCors({
     origin: [
       'http://localhost:2000',
-      'https://metalixia-frontend.vercel.app',
+      'https://metalixia-fe.onrender.com',
       "https://metalixia.com",
     ],
     credentials: true,
