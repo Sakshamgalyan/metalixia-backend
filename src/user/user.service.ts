@@ -17,7 +17,7 @@ export class UserService {
   constructor(
     @InjectModel(User.name)
     private userModel: Model<User>,
-  ) {}
+  ) { }
 
   async createUser(registerDto: RegisterUserDto) {
     try {
@@ -122,5 +122,17 @@ export class UserService {
     return this.userModel
       .find({ employeeId: { $in: employeeIds } })
       .select('name employeeId');
+  }
+
+  async findByEmail(email: string) {
+    return this.userModel.findOne({ email });
+  }
+
+  async updateVerificationStatus(userId: string, isVerified: boolean) {
+    return this.userModel.findByIdAndUpdate(
+      userId,
+      { isVerified },
+      { new: true }
+    );
   }
 }
