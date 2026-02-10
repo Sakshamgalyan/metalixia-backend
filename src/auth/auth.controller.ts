@@ -30,20 +30,23 @@ export class AuthController {
     tokens: { access_token: string; refresh_token: string },
   ) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
-    res.cookie('access_token', tokens.access_token, {
+
+    const cookieOptions = {
       httpOnly: true,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
       secure: isProduction,
-      domain: '.galyan.in',
       path: '/',
+    };
+
+    res.cookie('access_token', tokens.access_token, {
+      ...cookieOptions,
+      ...(isProduction && { domain: '.galyan.in' }),
       maxAge: 15 * 60 * 1000,
     });
+
     res.cookie('refresh_token', tokens.refresh_token, {
-      httpOnly: true,
-      sameSite: isProduction ? 'none' : 'lax',
-      secure: isProduction,
-      domain: '.galyan.in',
-      path: '/',
+      ...cookieOptions,
+      ...(isProduction && { domain: '.galyan.in' }),
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
   }
@@ -119,16 +122,6 @@ export class AuthController {
   @Get('profile')
   async profile(@Req() req: any, @Res() res: Response) {
     try {
-      const accessToken = req.cookies['access_token'];
-      if (!accessToken) {
-        const refreshToken = req.cookies['refresh_token'];
-        if (refreshToken) {
-          const tokens = await this.authService.refreshTokens(refreshToken);
-          this.setCookies(res, tokens);
-        } else {
-          throw new UnauthorizedException('Unauthorized');
-        }
-      }
       const user = await this.authService.getProfile(req.user.sub);
       return res.status(200).send({
         user,
@@ -137,8 +130,6 @@ export class AuthController {
       });
     } catch (error) {
       this.logger.error(`Profile fetch failed: ${error.message}`, error.stack);
-      res.clearCookie('access_token');
-      res.clearCookie('refresh_token');
       throw error;
     }
   }
