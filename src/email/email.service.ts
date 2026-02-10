@@ -1,7 +1,13 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import SendGrid from '@sendgrid/mail';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
+import * as path from 'path';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Email, EmailDocument } from './entities/email.schema';
@@ -9,7 +15,10 @@ import {
   EmailTemplate,
   EmailTemplateDocument,
 } from './entities/email-template.schema';
-import { Verification, VerificationDocument } from './entities/verification.schema';
+import {
+  Verification,
+  VerificationDocument,
+} from './entities/verification.schema';
 import { SendEmailDto } from './dto/send-email.dto';
 import { CreateTemplateDto } from './dto/create-template.dto';
 
@@ -47,6 +56,31 @@ export class EmailService {
     }
   }
 
+  /**
+   * Read HTML template and replace placeholders
+   */
+  private readTemplate(
+    templateName: string,
+    replacements: Record<string, string>,
+  ): string {
+    const templatePath = path.join(
+      process.cwd(),
+      'src',
+      'common',
+      'templete',
+      `${templateName}.html`,
+    );
+    let template = fs.readFileSync(templatePath, 'utf-8');
+
+    // Replace all placeholders
+    Object.keys(replacements).forEach((key) => {
+      const regex = new RegExp(`\\$\\{${key}\\}`, 'g');
+      template = template.replace(regex, replacements[key]);
+    });
+
+    return template;
+  }
+
   async sendEmail(
     files: Array<Express.Multer.File>,
     sendEmailDto: SendEmailDto,
@@ -55,9 +89,15 @@ export class EmailService {
     const attachments = files ? files.map((file) => file.path) : [];
 
     try {
-      if (!process.env.SENDGRID_FROM) {
-        throw new Error('SENDGRID_FROM is not defined');
+      if (!process.env.GMAIL_USER) {
+        throw new Error('GMAIL_USER is not defined');
       }
+
+      // Read email template and replace placeholders
+      const htmlContent = this.readTemplate('sendEmail', {
+        subject: sendEmailDto.subject,
+        message: sendEmailDto.message,
+      });
 
       // Updating to read file content for SendGrid
       const sgAttachments = (files || [])
@@ -76,15 +116,18 @@ export class EmailService {
             return null;
           }
         })
-        .filter((attachment) => attachment !== null) as any; // Cast as any because SendGrid types might conflict slightly or TS inference with null check needs improvement
+        .filter((attachment) => attachment !== null) as any; 
 
-      await SendGrid.send({
+      const mailOptions = {
+        from: process.env.GMAIL_USER,
         to: sendEmailDto.to,
-        from: process.env.SENDGRID_FROM,
         subject: sendEmailDto.subject,
-        html: sendEmailDto.message,
+        html: htmlContent,
         attachments: sgAttachments,
-      });
+      };
+
+      await this.gmailTransporter.sendMail(mailOptions);
+      
     } catch (error) {
       this.logger.error(
         `Failed to send email to ${sendEmailDto.to}: ${error.message}`,
@@ -169,7 +212,7 @@ export class EmailService {
     // Invalidate any existing OTPs for this email
     await this.verificationModel.updateMany(
       { email, isUsed: false },
-      { isUsed: true }
+      { isUsed: true },
     );
 
     // Save new OTP to database
@@ -182,22 +225,18 @@ export class EmailService {
     });
     await verification.save();
 
+    // Read OTP template and replace placeholders
+    const htmlContent = this.readTemplate('sendOtp', {
+      otp,
+      expiryMinutes: expiryMinutes.toString(),
+    });
+
     // Send OTP via Gmail
     const mailOptions = {
       from: process.env.GMAIL_USER,
       to: email,
       subject: 'Email Verification - OTP',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Email Verification</h2>
-          <p>Your OTP for email verification is:</p>
-          <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
-            ${otp}
-          </div>
-          <p style="color: #666;">This OTP will expire in ${expiryMinutes} minutes.</p>
-          <p style="color: #666;">If you didn't request this OTP, please ignore this email.</p>
-        </div>
-      `,
+      html: htmlContent,
     };
 
     try {
@@ -237,4 +276,3 @@ export class EmailService {
     return verification.userId.toString();
   }
 }
-
