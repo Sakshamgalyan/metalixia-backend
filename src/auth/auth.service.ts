@@ -112,6 +112,7 @@ export class AuthService {
       mobileNo: data.mobileNo,
       role: data.role,
       employeeId: data.employeeId,
+      isVerified: data.isVerified,
     };
     return user;
   }
