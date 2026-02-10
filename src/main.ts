@@ -16,9 +16,12 @@ async function metalixia() {
   app.use(cookieParser());
   app.enableCors({
     origin: [
-      'http://localhost:2000',
+      'http://localhost:3000',
       'https://metalixia-fe.onrender.com',
-      "https://metalixia.com",
+      "https://dashboard.galyan.in",
+      "https://galyan.in",
+      "http://dashboard.galyan.in",
+      "http://galyan.in",
     ],
     credentials: true,
   });
