@@ -21,7 +21,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
-  ) { }
+  ) {}
 
   async registerUser(registerDto: RegisterUserDto) {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
@@ -116,6 +116,9 @@ export class AuthService {
       role: data.role,
       employeeId: data.employeeId,
       isVerified: data.isVerified,
+      profilePicture: data.profilePicture,
+      description: data.description,
+      address: data.address,
     };
     return user;
   }
@@ -134,5 +137,33 @@ export class AuthService {
     await this.emailService.verifyOTP(email, otp);
     await this.userService.updatePassword(email, password);
     return { message: 'Password reset successfully', status: 'success' };
+  }
+
+  async updateProfile(userId: string, updateProfileDto: any) {
+    return this.userService.updateProfile(userId, updateProfileDto);
+  }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    return this.userService.changePassword(
+      userId,
+      currentPassword,
+      newPassword,
+    );
+  }
+
+  async updateProfilePicture(userId: string, filename: string) {
+    return this.userService.updateProfilePicture(userId, filename);
+  }
+
+  async searchEmployees(searchTerm: string, page: number, limit: number) {
+    return this.userService.searchEmployees(searchTerm, page, limit);
+  }
+
+  async getPublicProfile(employeeId: string) {
+    return this.userService.getPublicProfile(employeeId);
   }
 }

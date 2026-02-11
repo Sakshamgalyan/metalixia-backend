@@ -28,7 +28,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/mapped-types": "*",
     "@nestjs/mongoose": "^11.0.4",
-    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-express": "^11.1.13",
     "@nestjs/schedule": "^6.1.1",
     "@sendgrid/mail": "^8.1.6",
     "@types/bcrypt": "^6.0.0",

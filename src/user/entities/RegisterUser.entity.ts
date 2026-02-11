@@ -38,6 +38,15 @@ export class User {
 
   @Prop({ default: false })
   isVerified: boolean;
+
+  @Prop()
+  profilePicture: string;
+
+  @Prop({ default: 'Employee of Metalixia' })
+  description: string;
+
+  @Prop()
+  address: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
