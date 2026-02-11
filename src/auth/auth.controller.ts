@@ -328,6 +328,19 @@ export class AuthController {
       const userId = req.user.sub;
 
       const user = await this.authService.getProfile(userId);
+
+      // Delete old profile picture if exists
+      if (user.profilePicture) {
+        const oldFilePath = join(process.cwd(), user.profilePicture);
+        const fs = require('fs');
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+          this.logger.log(
+            `Deleted old profile picture: ${user.profilePicture}`,
+          );
+        }
+      }
+
       const email = user.email.replace(/[@.]/g, '-');
       const employeeId = user.employeeId || 'no-id';
       const uniqueId = Date.now() + '-' + Math.round(Math.random() * 1e9);
