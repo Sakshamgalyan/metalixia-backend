@@ -16,6 +16,8 @@ import { RegisterUserDto } from 'src/dto/auth/registerUser.dto';
 import { LoginUserDto } from 'src/dto/auth/loginUser.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { Public } from './decorators/public.decorator';
+import { ResetPasswordDto } from 'src/dto/auth/reset-password.dto';
+import { SendOtpDto } from 'src/email/dto/send-otp.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -23,7 +25,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   private setCookies(
     res: Response,
@@ -152,5 +154,17 @@ export class AuthController {
       res.clearCookie('refresh_token');
       throw error;
     }
+  }
+
+  @Public()
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: SendOtpDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Public()
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }

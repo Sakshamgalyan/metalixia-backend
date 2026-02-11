@@ -17,6 +17,9 @@ export class Verification {
     @Prop({ required: true })
     expiresAt: Date;
 
+    @Prop({ default: 0 })
+    useCount: number;
+
     @Prop({ default: false })
     isUsed: boolean;
 }

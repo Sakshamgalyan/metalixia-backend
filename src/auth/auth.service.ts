@@ -10,6 +10,8 @@ import { UserService } from 'src/user/user.service';
 import bcrypt from 'bcrypt';
 import { LoginUserDto } from 'src/dto/auth/loginUser.dto';
 import { ConfigService } from '@nestjs/config';
+import { EmailService } from 'src/email/email.service';
+import { ResetPasswordDto } from '../dto/auth/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +20,8 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+    private readonly emailService: EmailService,
+  ) { }
 
   async registerUser(registerDto: RegisterUserDto) {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
@@ -115,5 +118,21 @@ export class AuthService {
       isVerified: data.isVerified,
     };
     return user;
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.userService.findByEmail(email);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    await this.emailService.sendOTP(email, user._id.toString());
+    return { message: 'OTP sent successfully', status: 'success' };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { email, otp, password } = resetPasswordDto;
+    await this.emailService.verifyOTP(email, otp);
+    await this.userService.updatePassword(email, password);
+    return { message: 'Password reset successfully', status: 'success' };
   }
 }

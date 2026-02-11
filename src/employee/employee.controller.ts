@@ -28,7 +28,7 @@ import { ReportApproveDto } from 'src/dto/employee/ReportApprove.dto';
 
 @Controller('employee')
 export class EmployeeController {
-  constructor(private readonly employeeService: EmployeeService) {}
+  constructor(private readonly employeeService: EmployeeService) { }
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(

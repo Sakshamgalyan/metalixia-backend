@@ -17,6 +17,7 @@ async function metalixia() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
+      'http://localhost:2000',
       'https://metalixia-fe.onrender.com',
       "https://dashboard.galyan.in",
     ],

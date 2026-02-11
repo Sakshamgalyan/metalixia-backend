@@ -4,6 +4,7 @@ import { AuthController } from './auth.controller';
 import { UserModule } from 'src/user/user.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { EmailModule } from 'src/email/email.module';
 import { AuthGuard } from './guards/auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 
@@ -11,6 +12,7 @@ import { RolesGuard } from './guards/roles.guard';
   imports: [
     ConfigModule.forRoot(),
     UserModule,
+    EmailModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       global: true,
@@ -25,4 +27,4 @@ import { RolesGuard } from './guards/roles.guard';
   controllers: [AuthController],
   exports: [AuthGuard, RolesGuard, JwtModule],
 })
-export class AuthModule {}
+export class AuthModule { }

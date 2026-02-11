@@ -11,7 +11,7 @@ import { UpdateEmployeeDto } from 'src/dto/admin/UpdateEmployee.dto';
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminService: AdminService) { }
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.TEMP_ADMIN)

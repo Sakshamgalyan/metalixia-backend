@@ -116,7 +116,7 @@ export class EmailService {
             return null;
           }
         })
-        .filter((attachment) => attachment !== null) as any; 
+        .filter((attachment) => attachment !== null) as any;
 
       const mailOptions = {
         from: process.env.GMAIL_USER,
@@ -127,7 +127,7 @@ export class EmailService {
       };
 
       await this.gmailTransporter.sendMail(mailOptions);
-      
+
     } catch (error) {
       this.logger.error(
         `Failed to send email to ${sendEmailDto.to}: ${error.message}`,
@@ -209,18 +209,13 @@ export class EmailService {
     const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || '10');
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
-    // Invalidate any existing OTPs for this email
-    await this.verificationModel.updateMany(
-      { email, isUsed: false },
-      { isUsed: true },
-    );
-
     // Save new OTP to database
     const verification = new this.verificationModel({
       email,
       userId,
       otp,
       expiresAt,
+      useCount: 0,
       isUsed: false,
     });
     await verification.save();
@@ -268,11 +263,14 @@ export class EmailService {
       throw new BadRequestException('OTP has expired');
     }
 
-    // Mark OTP as used
-    verification.isUsed = true;
+    // Increment use count and mark as used if it reaches 2
+    verification.useCount += 1;
+    if (verification.useCount >= 2) {
+      verification.isUsed = true;
+    }
     await verification.save();
 
-    this.logger.log(`OTP verified successfully for ${email}`);
+    this.logger.log(`OTP verified successfully for ${email} (Use count: ${verification.useCount})`);
     return verification.userId.toString();
   }
 }

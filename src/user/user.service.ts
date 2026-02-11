@@ -135,4 +135,13 @@ export class UserService {
       { new: true }
     );
   }
+
+  async updatePassword(email: string, password: string) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    return this.userModel.findOneAndUpdate(
+      { email },
+      { password: hashedPassword },
+      { new: true }
+    );
+  }
 }
