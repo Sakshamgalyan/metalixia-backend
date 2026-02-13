@@ -22,8 +22,14 @@ export class EmployeeService {
     files: Array<Express.Multer.File>,
     reportUploadDto: ReportUploadDto,
   ) {
+    this.logger.log(
+      `Starting upload of ${files.length} files for employee ${reportUploadDto.employeeId}`,
+    );
     const savedReports = await Promise.all(
       files.map(async (file) => {
+        this.logger.debug(
+          `Uploading file: ${file.originalname}, size: ${file.size} bytes, type: ${file.mimetype}`,
+        );
         const newReport = new this.reportModel({
           name: file.filename,
           fileType: file.mimetype,
@@ -35,6 +41,9 @@ export class EmployeeService {
       }),
     );
 
+    this.logger.log(
+      `Successfully uploaded ${savedReports.length} reports for employee ${reportUploadDto.employeeId}`,
+    );
     return {
       message: `${savedReports.length} reports uploaded successfully`,
       status: 'success',
@@ -42,6 +51,9 @@ export class EmployeeService {
   }
 
   async getReports(page: number = 1, limit: number = 10, id: string) {
+    this.logger.debug(
+      `Fetching reports for employee ${id}, page: ${page}, limit: ${limit}`,
+    );
     const skip = (page - 1) * limit;
     const query: any = { isDeleted: false, employeeId: id };
 
@@ -55,6 +67,9 @@ export class EmployeeService {
       this.reportModel.countDocuments(query).exec(),
     ]);
 
+    this.logger.log(
+      `Found ${reports.length} reports for employee ${id} (total: ${total})`,
+    );
     const reportData = reports.map((report) => ({
       id: report._id.toString(),
       name: report.name.split('-')[0],
@@ -122,17 +137,26 @@ export class EmployeeService {
   }
 
   async approveReport(reportApproveDto: ReportApproveDto) {
+    this.logger.log(
+      `Approving report ${reportApproveDto.reportId} with status: ${reportApproveDto.status}`,
+    );
     const report = await this.reportModel
       .findByIdAndUpdate(reportApproveDto.reportId, {
         status: reportApproveDto.status,
       })
       .exec();
     if (!report) {
+      this.logger.warn(
+        `Report not found for approval: ${reportApproveDto.reportId}`,
+      );
       return {
         message: 'Report not found',
         status: 'error',
       };
     }
+    this.logger.log(
+      `Report ${reportApproveDto.reportId} approved successfully`,
+    );
     return {
       message: `Report approved successfully`,
       status: 'success',
@@ -140,10 +164,12 @@ export class EmployeeService {
   }
 
   async downloadReport(reportId: string) {
+    this.logger.debug(`Fetching report for download: ${reportId}`);
     return this.reportModel.findOne({ _id: reportId, isDeleted: false }).exec();
   }
 
   async deleteReport(reportDeleteDto: ReportDeleteDto) {
+    this.logger.log(`Marking report ${reportDeleteDto.id} for deletion`);
     const report = await this.reportModel
       .findByIdAndUpdate(
         reportDeleteDto.id,
@@ -153,11 +179,13 @@ export class EmployeeService {
       .exec();
 
     if (!report) {
+      this.logger.warn(`Report not found for deletion: ${reportDeleteDto.id}`);
       return {
         message: 'Report not found',
         status: 'error',
       };
     }
+    this.logger.log(`Report ${reportDeleteDto.id} marked for deletion`);
     return {
       message: 'Report marked for deletion',
       status: 'success',
@@ -169,6 +197,7 @@ export class EmployeeService {
   }
 
   async abortReport(reportId: string) {
+    this.logger.log(`Aborting deletion for report: ${reportId}`);
     const report = await this.reportModel
       .findByIdAndUpdate(
         reportId,
@@ -178,11 +207,13 @@ export class EmployeeService {
       .exec();
 
     if (!report) {
+      this.logger.warn(`Report not found for abort: ${reportId}`);
       return {
         message: 'Report not found',
         status: 'error',
       };
     }
+    this.logger.log(`Report deletion aborted for: ${reportId}`);
     return {
       message: 'Report deletion stopped.',
       status: 'success',
@@ -226,6 +257,9 @@ export class EmployeeService {
     page: number = 1,
     limit: number = 10,
   ) {
+    this.logger.log(
+      `Fetching reports for employeeId: ${employeeId}, page: ${page}, limit: ${limit}`,
+    );
     const skip = (page - 1) * limit;
     const query: any = { employeeId, isDeleted: false };
 
@@ -239,6 +273,9 @@ export class EmployeeService {
       this.reportModel.countDocuments(query).exec(),
     ]);
 
+    this.logger.log(
+      `Found ${reports.length} reports for employeeId: ${employeeId} (total: ${total})`,
+    );
     return {
       status: 'success',
       data: reports,
@@ -252,6 +289,7 @@ export class EmployeeService {
   }
 
   async getMailedReports(page: number = 1, limit: number = 10) {
+    this.logger.log(`Fetching mailed reports: page ${page}, limit: ${limit}`);
     const skip = (page - 1) * limit;
     const query: any = { status: 'mailed', isDeleted: false };
     const [reports, total] = await Promise.all([
@@ -264,6 +302,7 @@ export class EmployeeService {
       this.reportModel.countDocuments(query).exec(),
     ]);
 
+    this.logger.log(`Found ${reports.length} mailed reports (total: ${total})`);
     const reportData = reports.map((report) => ({
       id: report._id.toString(),
       name: report.name.split('-')[0],

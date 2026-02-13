@@ -11,6 +11,7 @@ import {
   Query,
   Res,
   Param,
+  Logger,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { EmployeeService } from './employee.service';
@@ -28,7 +29,8 @@ import { ReportApproveDto } from 'src/dto/employee/ReportApprove.dto';
 
 @Controller('employee')
 export class EmployeeController {
-  constructor(private readonly employeeService: EmployeeService) { }
+  private readonly logger = new Logger(EmployeeController.name);
+  constructor(private readonly employeeService: EmployeeService) {}
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(
@@ -75,8 +77,12 @@ export class EmployeeController {
     @Body() reportUploadDto: ReportUploadDto,
   ) {
     if (!files || files.length === 0) {
+      this.logger.warn('Report upload attempted without files');
       throw new HttpException('No files uploaded', HttpStatus.BAD_REQUEST);
     }
+    this.logger.log(
+      `Uploading ${files.length} reports for employee ${reportUploadDto.employeeId}`,
+    );
     return this.employeeService.uploadReport(files, reportUploadDto);
   }
 
@@ -94,6 +100,9 @@ export class EmployeeController {
     @Query('limit') limit: number = 10,
     @Param('id') id: string,
   ) {
+    this.logger.log(
+      `Fetching reports for employee ${id}, page: ${page}, limit: ${limit}`,
+    );
     return this.employeeService.getReports(Number(page), Number(limit), id);
   }
 
@@ -101,6 +110,9 @@ export class EmployeeController {
   @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.TEMP_ADMIN)
   @Post('approve-report')
   async approveReport(@Body() reportApproveDto: ReportApproveDto) {
+    this.logger.log(
+      `Approving report ${reportApproveDto.reportId} with status: ${reportApproveDto.status}`,
+    );
     return this.employeeService.approveReport(reportApproveDto);
   }
 
@@ -114,6 +126,7 @@ export class EmployeeController {
   )
   @Post('delete-report')
   async deleteReport(@Body() reportDeleteDto: ReportDeleteDto) {
+    this.logger.log(`Deleting report ${reportDeleteDto.id}`);
     return this.employeeService.deleteReport(reportDeleteDto);
   }
 
@@ -154,15 +167,21 @@ export class EmployeeController {
     @Param('reportId') reportId: string,
     @Res() res: Response,
   ) {
+    this.logger.log(`Downloading report ${reportId}`);
     const report = await this.employeeService.downloadReport(reportId);
     if (!report) {
+      this.logger.warn(`Report not found: ${reportId}`);
       throw new HttpException('Report not found', HttpStatus.NOT_FOUND);
     }
 
     if (!existsSync(report.location)) {
+      this.logger.error(
+        `File not found on server for report ${reportId}: ${report.location}`,
+      );
       throw new HttpException('File not found on server', HttpStatus.NOT_FOUND);
     }
 
+    this.logger.log(`Report ${reportId} downloaded successfully`);
     return res.download(report.location, report.originalName);
   }
 

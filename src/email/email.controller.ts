@@ -33,7 +33,7 @@ export class EmailController {
   constructor(
     private readonly emailService: EmailService,
     private readonly userService: UserService,
-  ) { }
+  ) {}
 
   @UseGuards(AuthGuard)
   @Post('send')
@@ -63,12 +63,16 @@ export class EmailController {
     const { employeeId, to, subject, message } = body;
 
     if (!employeeId) {
+      this.logger.warn('Email send attempted without employeeId');
       throw new HttpException(
         'Employee ID is required',
         HttpStatus.BAD_REQUEST,
       );
     }
 
+    this.logger.log(
+      `Sending email from ${employeeId} to ${to}, subject: '${subject}', attachments: ${files?.length || 0}`,
+    );
     const sendEmailDto: SendEmailDto = { to, subject, message };
     return this.emailService.sendEmail(files, sendEmailDto, employeeId);
   }
@@ -81,11 +85,15 @@ export class EmailController {
     @Query('limit') limit: number = 10,
   ) {
     if (!employeeId) {
+      this.logger.warn('Email history requested without employeeId');
       throw new HttpException(
         'Employee ID is required',
         HttpStatus.BAD_REQUEST,
       );
     }
+    this.logger.log(
+      `Fetching email history for employee ${employeeId}, page: ${page}, limit: ${limit}`,
+    );
     return this.emailService.getHistory(
       employeeId,
       Number(page),

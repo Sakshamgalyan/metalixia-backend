@@ -100,6 +100,7 @@ export class AuthController {
   @UseGuards(AuthGuard)
   async logout(@Req() req: any, @Res() res: Response) {
     const userId = req.user['sub'];
+    this.logger.log(`User ${userId} logging out`);
     await this.authService.logout(userId);
 
     const isProduction = this.configService.get('NODE_ENV') === 'production';
@@ -111,6 +112,7 @@ export class AuthController {
     res.clearCookie('access_token', clearOptions);
     res.clearCookie('refresh_token', clearOptions);
 
+    this.logger.log(`User ${userId} logged out successfully`);
     return res
       .status(200)
       .send({ message: 'Logged out successfully', status: 'success' });
@@ -121,16 +123,20 @@ export class AuthController {
   async refresh(@Req() req: any, @Res() res: Response) {
     const refreshToken = req.cookies['refresh_token'];
     if (!refreshToken) {
+      this.logger.warn('Refresh token not found in cookies');
       throw new UnauthorizedException('Refresh Token not found');
     }
     try {
+      this.logger.debug('Refreshing tokens');
       const tokens = await this.authService.refreshTokens(refreshToken);
       this.setCookies(res, tokens);
+      this.logger.log('Token refreshed successfully');
       return res.status(200).send({
         message: 'Token refreshed successfully',
         status: 'success',
       });
     } catch (error) {
+      this.logger.error(`Token refresh failed: ${error.message}`, error.stack);
       res.clearCookie('access_token');
       res.clearCookie('refresh_token');
       throw error;
@@ -143,6 +149,7 @@ export class AuthController {
     try {
       const accessToken = req.cookies['access_token'];
       if (!accessToken) {
+        this.logger.debug('Access token missing, attempting token refresh');
         const refreshToken = req.cookies['refresh_token'];
         if (refreshToken) {
           const tokens = await this.authService.refreshTokens(refreshToken);
@@ -151,7 +158,9 @@ export class AuthController {
           throw new UnauthorizedException('Unauthorized');
         }
       }
+      this.logger.debug(`Fetching profile for user ${req.user.sub}`);
       const user = await this.authService.getProfile(req.user.sub);
+      this.logger.log(`Profile fetched successfully for user ${req.user.sub}`);
       return res.status(200).send({
         user,
         message: 'Profile fetched successfully',
@@ -168,13 +177,23 @@ export class AuthController {
   @Public()
   @Post('forgot-password')
   async forgotPassword(@Body() forgotPasswordDto: SendOtpDto) {
+    this.logger.log(
+      `Password reset requested for email: ${forgotPasswordDto.email}`,
+    );
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
   @Public()
   @Post('reset-password')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    return this.authService.resetPassword(resetPasswordDto);
+    this.logger.log(
+      `Password reset attempt for email: ${resetPasswordDto.email}`,
+    );
+    const result = await this.authService.resetPassword(resetPasswordDto);
+    this.logger.log(
+      `Password reset successful for email: ${resetPasswordDto.email}`,
+    );
+    return result;
   }
 
   @UseGuards(AuthGuard)
@@ -186,7 +205,9 @@ export class AuthController {
   ) {
     try {
       const userId = req.user.sub;
+      this.logger.log(`Updating profile for user ${userId}`);
       await this.authService.updateProfile(userId, updateProfileDto);
+      this.logger.log(`Profile updated successfully for user ${userId}`);
       return res.status(200).send({
         message: 'Profile updated successfully',
         status: 'success',
@@ -206,8 +227,12 @@ export class AuthController {
   ) {
     try {
       const userId = req.user.sub;
+      this.logger.log(`Password change requested for user ${userId}`);
 
       if (changePasswordDto.newPassword !== changePasswordDto.confirmPassword) {
+        this.logger.warn(
+          `Password change failed: Passwords do not match for user ${userId}`,
+        );
         throw new UnauthorizedException('Passwords do not match');
       }
 
@@ -217,6 +242,7 @@ export class AuthController {
         changePasswordDto.newPassword,
       );
 
+      this.logger.log(`Password changed successfully for user ${userId}`);
       return res.status(200).send({
         message: 'Password changed successfully',
         status: 'success',
@@ -239,10 +265,16 @@ export class AuthController {
     @Res() res: Response,
   ) {
     try {
+      this.logger.log(
+        `Searching employees with query: '${search}', page: ${page}, limit: ${limit}`,
+      );
       const result = await this.authService.searchEmployees(
         search,
         Number(page),
         Number(limit),
+      );
+      this.logger.log(
+        `Found ${result.data?.length || 0} employees for search query: '${search}'`,
       );
       return res.status(200).send({
         ...result,
@@ -265,7 +297,13 @@ export class AuthController {
     @Res() res: Response,
   ) {
     try {
+      this.logger.log(
+        `Fetching employee profile for employeeId: ${employeeId}`,
+      );
       const employee = await this.authService.getPublicProfile(employeeId);
+      this.logger.log(
+        `Employee profile fetched successfully for employeeId: ${employeeId}`,
+      );
       return res.status(200).send({
         employee,
         message: 'Employee profile fetched successfully',
@@ -273,7 +311,7 @@ export class AuthController {
       });
     } catch (error) {
       this.logger.error(
-        `Employee profile fetch failed: ${error.message}`,
+        `Employee profile fetch failed for employeeId ${employeeId}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -322,10 +360,14 @@ export class AuthController {
   ) {
     try {
       if (!file) {
+        this.logger.warn('Profile picture upload attempted without file');
         throw new HttpException('No file uploaded', HttpStatus.BAD_REQUEST);
       }
 
       const userId = req.user.sub;
+      this.logger.log(
+        `Profile picture upload initiated for user ${userId}, file: ${file.originalname}, size: ${file.size} bytes`,
+      );
 
       const user = await this.authService.getProfile(userId);
 
@@ -357,6 +399,9 @@ export class AuthController {
 
       await this.authService.updateProfilePicture(userId, filename);
 
+      this.logger.log(
+        `Profile picture uploaded successfully for user ${userId}: ${filename}`,
+      );
       return res.status(200).send({
         profilePic: filename,
         message: 'Profile picture uploaded successfully',

@@ -20,15 +20,25 @@ export class AttendanceService {
     file: Express.Multer.File,
     createAttendanceDto: CreateAttendanceDto,
   ) {
+    this.logger.log(
+      `Creating attendance record for employee ${createAttendanceDto.employeeId}, month: ${createAttendanceDto.month}, year: ${createAttendanceDto.year}`,
+    );
     const newAttendance = new this.attendanceModel({
       ...createAttendanceDto,
       fileName: file.filename,
       location: file.path,
     });
-    return newAttendance.save();
+    const result = await newAttendance.save();
+    this.logger.log(
+      `Attendance record created successfully for employee ${createAttendanceDto.employeeId}`,
+    );
+    return result;
   }
 
   async findAll(page: number = 1, limit: number = 10, employeeId?: string) {
+    this.logger.debug(
+      `Fetching attendance records: page ${page}, limit: ${limit}, employeeId: ${employeeId || 'all'}`,
+    );
     const skip = (page - 1) * limit;
     const query: any = { isDeleted: false };
 
@@ -71,6 +81,9 @@ export class AttendanceService {
       };
     });
 
+    this.logger.log(
+      `Found ${attendances.length} attendance records (total: ${total})`,
+    );
     return {
       status: 'success',
       data,
@@ -84,18 +97,25 @@ export class AttendanceService {
   }
 
   async remove(id: string) {
+    this.logger.log(`Removing attendance record: ${id}`);
     const attendance = await this.attendanceModel.findById(id);
-    if (!attendance) return null;
+    if (!attendance) {
+      this.logger.warn(`Attendance record not found for deletion: ${id}`);
+      return null;
+    }
 
     try {
       if (fs.existsSync(attendance.location)) {
         fs.unlinkSync(attendance.location);
+        this.logger.log(`Deleted attendance file: ${attendance.location}`);
       }
     } catch (error) {
       this.logger.error(`Failed to delete file: ${attendance.location}`, error);
     }
 
-    return this.attendanceModel.findByIdAndDelete(id).exec();
+    const result = await this.attendanceModel.findByIdAndDelete(id).exec();
+    this.logger.log(`Attendance record ${id} removed successfully`);
+    return result;
   }
 
   async download(id: string) {

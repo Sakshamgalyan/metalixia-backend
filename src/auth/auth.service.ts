@@ -44,6 +44,7 @@ export class AuthService {
   }
 
   async logout(userId: string) {
+    this.logger.log(`Logging out user: ${userId}`);
     return this.userService.updateRefreshToken(userId, null);
   }
 
@@ -53,32 +54,46 @@ export class AuthService {
       payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
-    } catch {
+    } catch (error) {
+      this.logger.warn(`Refresh token verification failed: ${error.message}`);
       throw new ForbiddenException('Access Denied');
     }
 
     const userId = payload.sub;
+    this.logger.debug(`Refresh token verified for user: ${userId}`);
     const user = await this.userService.findById(userId);
-    if (!user || !user.refreshToken)
+    if (!user || !user.refreshToken) {
+      this.logger.warn(
+        `Refresh token validation failed for user: ${userId} - User not found or no refresh token`,
+      );
       throw new ForbiddenException('Access Denied');
+    }
 
     const refreshTokenMatches = await bcrypt.compare(
       refreshToken,
       user.refreshToken,
     );
-    if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
+    if (!refreshTokenMatches) {
+      this.logger.warn(`Refresh token mismatch for user: ${userId}`);
+      throw new ForbiddenException('Access Denied');
+    }
 
+    this.logger.log(`Generating new tokens for user: ${userId}`);
     const tokens = await this.getTokens(user._id.toString(), user.role);
     await this.updateRefreshToken(user._id.toString(), tokens.refresh_token);
     return tokens;
   }
 
   async updateRefreshToken(userId: string, refreshToken: string) {
+    this.logger.debug(`Updating refresh token for user: ${userId}`);
     const hash = await bcrypt.hash(refreshToken, 10);
     await this.userService.updateRefreshToken(userId, hash);
   }
 
   async getTokens(userId: string, role: string) {
+    this.logger.debug(
+      `Generating access and refresh tokens for user: ${userId}`,
+    );
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
         { sub: userId, role },
@@ -103,8 +118,10 @@ export class AuthService {
   }
 
   async getProfile(userId: string) {
+    this.logger.debug(`Fetching profile for user: ${userId}`);
     const data = await this.userService.findById(userId);
     if (!data) {
+      this.logger.warn(`Profile not found for user: ${userId}`);
       throw new UnauthorizedException('User not found');
     }
     const user = {
@@ -134,12 +151,15 @@ export class AuthService {
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
     const { email, otp, password } = resetPasswordDto;
+    this.logger.log(`Resetting password for email: ${email}`);
     await this.emailService.verifyOTP(email, otp);
     await this.userService.updatePassword(email, password);
+    this.logger.log(`Password reset completed for email: ${email}`);
     return { message: 'Password reset successfully', status: 'success' };
   }
 
   async updateProfile(userId: string, updateProfileDto: any) {
+    this.logger.log(`Updating profile for user: ${userId}`);
     return this.userService.updateProfile(userId, updateProfileDto);
   }
 
@@ -148,6 +168,7 @@ export class AuthService {
     currentPassword: string,
     newPassword: string,
   ) {
+    this.logger.log(`Changing password for user: ${userId}`);
     return this.userService.changePassword(
       userId,
       currentPassword,
@@ -156,14 +177,21 @@ export class AuthService {
   }
 
   async updateProfilePicture(userId: string, filename: string) {
+    this.logger.log(
+      `Updating profile picture for user: ${userId} to ${filename}`,
+    );
     return this.userService.updateProfilePicture(userId, filename);
   }
 
   async searchEmployees(searchTerm: string, page: number, limit: number) {
+    this.logger.debug(
+      `Searching employees: term='${searchTerm}', page=${page}, limit=${limit}`,
+    );
     return this.userService.searchEmployees(searchTerm, page, limit);
   }
 
   async getPublicProfile(employeeId: string) {
+    this.logger.debug(`Fetching public profile for employeeId: ${employeeId}`);
     return this.userService.getPublicProfile(employeeId);
   }
 }

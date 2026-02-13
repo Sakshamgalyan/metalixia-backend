@@ -16,15 +16,25 @@ export class PayslipService {
   ) {}
 
   async create(file: Express.Multer.File, createPayslipDto: CreatePayslipDto) {
+    this.logger.log(
+      `Creating payslip for employee ${createPayslipDto.employeeId}, month: ${createPayslipDto.month}, year: ${createPayslipDto.year}`,
+    );
     const newPayslip = new this.payslipModel({
       ...createPayslipDto,
       fileName: file.filename,
       location: file.path,
     });
-    return newPayslip.save();
+    const result = await newPayslip.save();
+    this.logger.log(
+      `Payslip created successfully for employee ${createPayslipDto.employeeId}`,
+    );
+    return result;
   }
 
   async findAll(page: number = 1, limit: number = 10, employeeId?: string) {
+    this.logger.debug(
+      `Fetching payslips: page ${page}, limit: ${limit}, employeeId: ${employeeId || 'all'}`,
+    );
     const skip = (page - 1) * limit;
     const query: any = { isDeleted: false };
 
@@ -67,6 +77,7 @@ export class PayslipService {
       };
     });
 
+    this.logger.log(`Found ${payslips.length} payslips (total: ${total})`);
     return {
       status: 'success',
       data,
@@ -135,18 +146,25 @@ export class PayslipService {
   }
 
   async remove(id: string) {
+    this.logger.log(`Removing payslip: ${id}`);
     const payslip = await this.payslipModel.findById(id);
-    if (!payslip) return null;
+    if (!payslip) {
+      this.logger.warn(`Payslip not found for deletion: ${id}`);
+      return null;
+    }
 
     try {
       if (fs.existsSync(payslip.location)) {
         fs.unlinkSync(payslip.location);
+        this.logger.log(`Deleted payslip file: ${payslip.location}`);
       }
     } catch (error) {
       this.logger.error(`Failed to delete file: ${payslip.location}`, error);
     }
 
-    return this.payslipModel.findByIdAndDelete(id).exec();
+    const result = await this.payslipModel.findByIdAndDelete(id).exec();
+    this.logger.log(`Payslip ${id} removed successfully`);
+    return result;
   }
 
   async download(id: string) {

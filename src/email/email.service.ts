@@ -87,6 +87,9 @@ export class EmailService {
     senderId: string,
   ) {
     const attachments = files ? files.map((file) => file.path) : [];
+    this.logger.log(
+      `Sending email to ${sendEmailDto.to} from ${senderId}, subject: '${sendEmailDto.subject}', attachments: ${files?.length || 0}`,
+    );
 
     try {
       if (!process.env.GMAIL_USER) {
@@ -127,7 +130,7 @@ export class EmailService {
       };
 
       await this.gmailTransporter.sendMail(mailOptions);
-
+      this.logger.log(`Email sent successfully to ${sendEmailDto.to}`);
     } catch (error) {
       this.logger.error(
         `Failed to send email to ${sendEmailDto.to}: ${error.message}`,
@@ -154,6 +157,9 @@ export class EmailService {
   }
 
   async getHistory(senderId: string, page: number = 1, limit: number = 10) {
+    this.logger.debug(
+      `Fetching email history for sender ${senderId}, page: ${page}, limit: ${limit}`,
+    );
     const skip = (page - 1) * limit;
     const query = { senderId };
 
@@ -167,6 +173,9 @@ export class EmailService {
       this.emailModel.countDocuments(query).exec(),
     ]);
 
+    this.logger.log(
+      `Found ${emails.length} emails for sender ${senderId} (total: ${total})`,
+    );
     return {
       data: emails,
       meta: {
@@ -270,7 +279,9 @@ export class EmailService {
     }
     await verification.save();
 
-    this.logger.log(`OTP verified successfully for ${email} (Use count: ${verification.useCount})`);
+    this.logger.log(
+      `OTP verified successfully for ${email} (Use count: ${verification.useCount})`,
+    );
     return verification.userId.toString();
   }
 }

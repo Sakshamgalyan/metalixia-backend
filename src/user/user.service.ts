@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { RegisterUserDto } from 'src/dto/auth/registerUser.dto';
@@ -14,29 +15,43 @@ import { UpdateUserDto } from 'src/dto/admin/UpdateUser.dto';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectModel(User.name)
     private userModel: Model<User>,
   ) {}
 
   async createUser(registerDto: RegisterUserDto) {
+    this.logger.log(`Creating user with email: ${registerDto.email}`);
     try {
       const user = await this.userModel.create(registerDto);
+      this.logger.log(
+        `User created successfully: ${user.email} (ID: ${user._id})`,
+      );
       return user;
     } catch (error: any) {
       if (error.code === 11000) {
         const key = Object.keys(error.keyValue)[0];
+        this.logger.warn(
+          `Duplicate key error: ${key} already exists for ${registerDto.email}`,
+        );
         throw new ConflictException(`${key} already exists`);
       }
+      this.logger.error(`Failed to create user: ${error.message}`, error.stack);
       throw error;
     }
   }
 
   async loginUser(loginDto: LoginUserDto) {
+    this.logger.log(`Login attempt for identifier: ${loginDto.identifier}`);
     const user = await this.userModel.findOne({
       $or: [{ email: loginDto.identifier }, { mobileNo: loginDto.identifier }],
     });
     if (!user) {
+      this.logger.warn(
+        `Login failed: User not found for identifier ${loginDto.identifier}`,
+      );
       throw new UnauthorizedException('User not found');
     }
     const isPasswordValid = await bcrypt.compare(
@@ -44,8 +59,10 @@ export class UserService {
       user.password,
     );
     if (!isPasswordValid) {
+      this.logger.warn(`Login failed: Invalid password for ${user.email}`);
       throw new UnauthorizedException('Invalid password');
     }
+    this.logger.log(`Login successful for ${user.email}`);
     return user;
   }
 
@@ -146,6 +163,7 @@ export class UserService {
   }
 
   async updateProfile(userId: string, updateProfileDto: any) {
+    this.logger.log(`Updating profile for user: ${userId}`);
     const updateData: any = {};
 
     if (updateProfileDto.name) updateData.name = updateProfileDto.name;
@@ -160,7 +178,11 @@ export class UserService {
 
     updateData.updatedOn = new Date();
 
-    return this.userModel.findByIdAndUpdate(userId, updateData, { new: true });
+    const result = await this.userModel.findByIdAndUpdate(userId, updateData, {
+      new: true,
+    });
+    this.logger.log(`Profile updated successfully for user: ${userId}`);
+    return result;
   }
 
   async changePassword(
@@ -168,8 +190,10 @@ export class UserService {
     currentPassword: string,
     newPassword: string,
   ) {
+    this.logger.log(`Changing password for user: ${userId}`);
     const user = await this.userModel.findById(userId);
     if (!user) {
+      this.logger.warn(`Password change failed: User not found ${userId}`);
       throw new UnauthorizedException('User not found');
     }
 
@@ -178,15 +202,20 @@ export class UserService {
       user.password,
     );
     if (!isPasswordValid) {
+      this.logger.warn(
+        `Password change failed: Incorrect current password for user ${userId}`,
+      );
       throw new UnauthorizedException('Current password is incorrect');
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    return this.userModel.findByIdAndUpdate(
+    const result = await this.userModel.findByIdAndUpdate(
       userId,
       { password: hashedPassword, updatedOn: new Date() },
       { new: true },
     );
+    this.logger.log(`Password changed successfully for user: ${userId}`);
+    return result;
   }
 
   async updateProfilePicture(userId: string, filename: string) {
@@ -202,6 +231,9 @@ export class UserService {
     page: number = 1,
     limit: number = 20,
   ) {
+    this.logger.debug(
+      `Searching employees: term='${searchTerm}', page=${page}, limit=${limit}`,
+    );
     const query: any = {};
 
     if (searchTerm) {
@@ -222,6 +254,9 @@ export class UserService {
 
     const total = await this.userModel.countDocuments(query);
 
+    this.logger.log(
+      `Found ${employees.length} employees for search '${searchTerm}' (total: ${total})`,
+    );
     return {
       pagination: {
         total,
