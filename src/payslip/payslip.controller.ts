@@ -77,7 +77,7 @@ export class PayslipController {
     @Query('limit') limit: number = 10,
     @Query('employeeId') employeeId?: string,
   ) {
-    return this.payslipService.findAll(Number(page), Number(limit), employeeId);
+    return this.payslipService.findAllByEmployeeId(Number(page), Number(limit), employeeId);
   }
 
   @Get('get-payslips')

@@ -31,7 +31,7 @@ export class PayslipService {
     return result;
   }
 
-  async findAll(page: number = 1, limit: number = 10, employeeId?: string) {
+  async findAllByEmployeeId(page: number = 1, limit: number = 10, employeeId?: string) {
     this.logger.debug(
       `Fetching payslips: page ${page}, limit: ${limit}, employeeId: ${employeeId || 'all'}`,
     );
