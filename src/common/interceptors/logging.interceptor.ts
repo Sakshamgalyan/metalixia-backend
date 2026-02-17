@@ -71,7 +71,12 @@ export class LoggingInterceptor implements NestInterceptor {
           const statusCode = response.statusCode;
 
           // Log response size if data is available
-          const dataSize = data ? JSON.stringify(data).length : 0;
+          let dataSize: number | string = 0;
+          try {
+            dataSize = data ? JSON.stringify(data).length : 0;
+          } catch (error) {
+            dataSize = 'Circular';
+          }
 
           this.logger.log(
             `[${requestId}] Outgoing Response: [${method}] ${url} - Status: ${statusCode} - ${delay}ms - Size: ${dataSize} bytes`,
