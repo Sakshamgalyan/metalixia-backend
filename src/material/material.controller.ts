@@ -43,7 +43,7 @@ export class MaterialController {
         return this.materialService.getCompanyMaterials(Number(page), Number(limit));
     }
 
-    @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN)
+    @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.MANAGER)
     @Patch('company/:id/receiver')
     updateCompanyMaterialReceiver(
         @Param('id') id: string,
