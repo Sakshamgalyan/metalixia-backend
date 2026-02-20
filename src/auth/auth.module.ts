@@ -11,7 +11,9 @@ import { RolesGuard } from './guards/roles.guard';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     UserModule,
     EmailModule,
     JwtModule.registerAsync({

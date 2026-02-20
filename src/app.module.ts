@@ -12,6 +12,7 @@ import { EmailModule } from './email/email.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { AttendanceModule } from './attendance/attendance.module';
 import { PayslipModule } from './payslip/payslip.module';
+import { MaterialModule } from './material/material.module';
 
 @Module({
   imports: [
@@ -39,8 +40,9 @@ import { PayslipModule } from './payslip/payslip.module';
     }),
     PayslipModule,
     AttendanceModule,
+    MaterialModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
