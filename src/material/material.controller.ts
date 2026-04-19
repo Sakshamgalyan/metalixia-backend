@@ -3,6 +3,7 @@ import { MaterialService } from './material.service';
 import { CreateRawMaterialDto } from 'src/dto/material/create-raw-material.dto';
 import { CreateCompanyMaterialDto } from 'src/dto/material/create-company-material.dto';
 import { UpdateCompanyMaterialReceiverDto } from 'src/dto/material/update-company-material.dto';
+import { UpdateCompanyMaterialFullDto } from 'src/dto/material/update-company-material-full.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -35,12 +36,27 @@ export class MaterialController {
     }
 
     @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.MANAGER, Role.QUALITY, Role.TEMP_ADMIN)
+    @Get('company/stats')
+    getCompanyMaterialStats() {
+        return this.materialService.getCompanyMaterialStats();
+    }
+
+    @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.MANAGER, Role.QUALITY, Role.TEMP_ADMIN)
     @Get('company')
     getCompanyMaterials(
         @Query('page') page: string = '1',
         @Query('limit') limit: string = '10',
     ) {
         return this.materialService.getCompanyMaterials(Number(page), Number(limit));
+    }
+
+    @Roles(Role.SUPER_ADMIN)
+    @Patch('company/:id')
+    updateCompanyMaterial(
+        @Param('id') id: string,
+        @Body() updateCompanyMaterialFullDto: UpdateCompanyMaterialFullDto,
+    ) {
+        return this.materialService.updateCompanyMaterial(id, updateCompanyMaterialFullDto);
     }
 
     @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN)

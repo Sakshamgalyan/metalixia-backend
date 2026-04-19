@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, IsDateString } from 'class-validator';
 
 export class CreateCompanyMaterialDto {
     @IsNotEmpty()
@@ -17,15 +17,27 @@ export class CreateCompanyMaterialDto {
     @IsString()
     unit: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
-    receivedBy: string;
+    receivedBy?: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
-    receivedById: string;
+    receivedById?: string;
 
     @IsNotEmpty()
     @IsString()
     inventoryLocation: string;
+
+    @IsOptional()
+    @IsDateString()
+    expectedOn?: string;
+
+    @IsOptional()
+    @IsDateString()
+    deliveryBy?: string;
+
+    @IsOptional()
+    @IsDateString()
+    receivedOn?: string;
 }
