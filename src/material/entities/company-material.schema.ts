@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type CompanyMaterialDocument = CompanyMaterial & Document;
 
-@Schema({ timestamps: { createdAt: 'receivedAt', updatedAt: 'updatedAt' } })
+@Schema({ timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' } })
 export class CompanyMaterial {
     @Prop({ required: true })
     materialName: string;
@@ -17,17 +17,26 @@ export class CompanyMaterial {
     @Prop({ required: true })
     unit: string;
 
-    @Prop({ required: true })
+    @Prop({ default: null })
     receivedBy: string;
 
-    @Prop({ required: true })
+    @Prop({ default: null })
     receivedById: string;
 
     @Prop({ required: true })
     inventoryLocation: string;
 
+    @Prop({ type: Date, default: null })
+    expectedOn: Date;
+
+    @Prop({ type: Date, default: null })
+    deliveryBy: Date;
+
+    @Prop({ type: Date, default: null })
+    receivedOn: Date;
+
     @Prop()
-    receivedAt: Date;
+    createdAt: Date;
 
     @Prop()
     updatedAt: Date;
