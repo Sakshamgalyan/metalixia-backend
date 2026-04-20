@@ -40,11 +40,20 @@ export class MaterialService {
         return createdMaterial.save();
     }
 
-    async getCompanyMaterials(page: number, limit: number) {
+    async getCompanyMaterials(page: number, limit: number, search?: string) {
         const skip = (page - 1) * limit;
+        const filter: any = {};
+        if (search) {
+            filter.$or = [
+                { materialName: { $regex: search, $options: 'i' } },
+                { companyName: { $regex: search, $options: 'i' } },
+                { inventoryLocation: { $regex: search, $options: 'i' } }
+            ];
+        }
+
         const [data, total] = await Promise.all([
-            this.companyMaterialModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
-            this.companyMaterialModel.countDocuments().exec()
+            this.companyMaterialModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
+            this.companyMaterialModel.countDocuments(filter).exec()
         ]);
         return {
             data,

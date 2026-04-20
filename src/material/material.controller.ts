@@ -46,8 +46,9 @@ export class MaterialController {
     getCompanyMaterials(
         @Query('page') page: string = '1',
         @Query('limit') limit: string = '10',
+        @Query('search') search?: string,
     ) {
-        return this.materialService.getCompanyMaterials(Number(page), Number(limit));
+        return this.materialService.getCompanyMaterials(Number(page), Number(limit), search);
     }
 
     @Roles(Role.SUPER_ADMIN)
