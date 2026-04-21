@@ -3,6 +3,10 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class PartItem {
+ 
+  @Prop()
+  companyId: string;
+
   @Prop()
   partName: string;
 
@@ -18,6 +22,10 @@ export type CompanyDocument = Company & Document;
 
 @Schema({ timestamps: true })
 export class Company {
+
+  @Prop({ required: true })
+  companyId: string;
+
   @Prop({ required: true })
   companyName: string;
 

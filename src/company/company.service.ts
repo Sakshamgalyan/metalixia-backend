@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { isValidObjectId, Model } from 'mongoose';
 import { Company, CompanyDocument } from './entities/company.schema';
 import { CreateCompanyDto } from 'src/dto/company/create-company.dto';
 import { UpdateCompanyDto } from 'src/dto/company/update-company.dto';
@@ -12,7 +12,8 @@ import { UpdateCompanyDto } from 'src/dto/company/update-company.dto';
 @Injectable()
 export class CompanyService {
   constructor(
-    @InjectModel(Company.name) private companyModel: Model<CompanyDocument>,
+    @InjectModel(Company.name)
+    private readonly companyModel: Model<CompanyDocument>,
   ) {}
 
   async createCompany(createCompanyDto: CreateCompanyDto): Promise<Company> {
@@ -53,12 +54,25 @@ export class CompanyService {
       data,
       total,
       page,
-      limit,
       totalPages: Math.ceil(total / limit),
     };
   }
 
+  async getCompaniesList(): Promise<{ value: string; label: string }[]> {
+    const companies = await this.companyModel
+      .find()
+      .select('companyName')
+      .exec();
+    return companies.map((company: any) => ({
+      value: company._id.toString(),
+      label: company.companyName,
+    }));
+  }
+
   async deleteCompany(id: string): Promise<Company> {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid company ID');
+    }
     const company = await this.companyModel.findByIdAndDelete(id).exec();
     if (!company) {
       throw new NotFoundException('Company not found');
@@ -70,6 +84,9 @@ export class CompanyService {
     id: string,
     updateCompanyDto: UpdateCompanyDto,
   ): Promise<Company> {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid company ID');
+    }
     const company = await this.companyModel
       .findByIdAndUpdate(id, updateCompanyDto, { new: true })
       .exec();
@@ -79,15 +96,28 @@ export class CompanyService {
     return company;
   }
 
-  async getCompanyParts(companyId: string): Promise<Company> {
+  async getCompanyParts(
+    companyId: string,
+  ): Promise<{ value: string; label: string }[]> {
+    if (!isValidObjectId(companyId)) {
+      throw new BadRequestException('Invalid company ID');
+    }
     const company = await this.companyModel.findById(companyId).exec();
+
     if (!company) {
       throw new NotFoundException('Company not found');
     }
-    return company;
+
+    return company.parts.map((part: any) => ({
+      value: part._id.toString(),
+      label: `${part.partNumber} - ${part.partName}`,
+    }));
   }
 
   async addPartToCompany(companyId: string, part: any): Promise<Company> {
+    if (!isValidObjectId(companyId)) {
+      throw new BadRequestException('Invalid company ID');
+    }
     const company = await this.companyModel.findById(companyId).exec();
     if (!company) {
       throw new NotFoundException('Company not found');
@@ -97,33 +127,51 @@ export class CompanyService {
   }
 
   async removePart(partId: string): Promise<Company> {
-    const company = await this.companyModel.findOne({ 'parts._id': partId }).exec();
+    if (!isValidObjectId(partId)) {
+      throw new BadRequestException('Invalid part ID');
+    }
+    const company = await this.companyModel
+      .findOne({ 'parts._id': partId })
+      .exec();
 
     if (!company) {
       throw new NotFoundException('Part not found');
     }
 
-    company.parts = company.parts.filter((p: any) => p._id.toString() !== partId);
+    company.parts = company.parts.filter(
+      (p: any) => p._id.toString() !== partId,
+    );
     return await company.save();
   }
 
   async updatePart(partId: string, partData: any): Promise<Company> {
-    const company = await this.companyModel.findOne({ 'parts._id': partId }).exec();
+    if (!isValidObjectId(partId)) {
+      throw new BadRequestException('Invalid part ID');
+    }
+    const company = await this.companyModel
+      .findOne({ 'parts._id': partId })
+      .exec();
     if (!company) {
       throw new NotFoundException('Part not found');
     }
-    
+
     // Check if the part should be moved to a different company
     if (partData.companyId && partData.companyId !== company._id.toString()) {
       // Find new company
-      const newCompany = await this.companyModel.findById(partData.companyId).exec();
+      const newCompany = await this.companyModel
+        .findById(partData.companyId)
+        .exec();
       if (!newCompany) throw new NotFoundException('New company not found');
-      
+
       // Remove from old company
-      const partObj = company.parts.find((p: any) => p._id.toString() === partId);
-      company.parts = company.parts.filter((p: any) => p._id.toString() !== partId);
+      const partObj = company.parts.find(
+        (p: any) => p._id.toString() === partId,
+      );
+      company.parts = company.parts.filter(
+        (p: any) => p._id.toString() !== partId,
+      );
       await company.save();
-      
+
       // Update and add to new company
       const updatedPart = { ...partObj, ...partData };
       delete updatedPart.companyId; // Do not store companyId inside the nested part
@@ -131,22 +179,55 @@ export class CompanyService {
       return newCompany.save();
     } else {
       // Just update it in the existing company
-      const partToUpdate = company.parts.find((p: any) => p._id.toString() === partId);
+      const partToUpdate = company.parts.find(
+        (p: any) => p._id.toString() === partId,
+      );
       if (partToUpdate) {
         if (partData.partName) partToUpdate.partName = partData.partName;
         if (partData.partNumber) partToUpdate.partNumber = partData.partNumber;
-        if (partData.description !== undefined) partToUpdate.description = partData.description;
+        if (partData.description !== undefined)
+          partToUpdate.description = partData.description;
       }
       return company.save();
     }
   }
-  async getAllParts(): Promise<Company[]> {
-    const companies = await this.companyModel.find().exec();
+
+  async getAllParts(page = 1, limit = 10) {
+    const companies = await this.companyModel.find().lean().exec();
 
     if (!companies.length) {
       throw new NotFoundException('No companies found');
     }
 
-    return companies;
+    // Flatten parts
+    const allParts = companies.reduce((acc: any[], company: any) => {
+      if (company.parts && Array.isArray(company.parts)) {
+        const companyParts = company.parts.map((p: any) => ({
+          ...p,
+          companyId: company._id,
+          companyName: company.companyName,
+        }));
+        return acc.concat(companyParts);
+      }
+      return acc;
+    }, []);
+
+    // Pagination logic
+    const totalCount = allParts.length;
+    const totalPages = Math.ceil(totalCount / limit);
+    const currentPage = Number(page);
+
+    const startIndex = (currentPage - 1) * limit;
+    const paginatedData = allParts.slice(
+      startIndex,
+      startIndex + Number(limit),
+    );
+
+    return {
+      totalCount,
+      totalPages,
+      currentPage,
+      data: paginatedData,
+    };
   }
 }
