@@ -12,6 +12,7 @@ import { EmailModule } from './email/email.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { AttendanceModule } from './attendance/attendance.module';
 import { PayslipModule } from './payslip/payslip.module';
+import { CompanyModule } from './company/company.module';
 import { MaterialModule } from './material/material.module';
 
 @Module({
@@ -41,6 +42,7 @@ import { MaterialModule } from './material/material.module';
     PayslipModule,
     AttendanceModule,
     MaterialModule,
+    CompanyModule,
   ],
   controllers: [AppController],
   providers: [AppService],
