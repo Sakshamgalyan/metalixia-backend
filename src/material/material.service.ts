@@ -37,22 +37,29 @@ export class MaterialService {
     return createdMaterial.save();
   }
 
-  async getRawMaterials(page: number, limit: number) {
+  async getRawMaterials(page: number, limit: number, search?: string) {
     const skip = (page - 1) * limit;
+    const filter: any = {};
+    if (search) {
+      filter.$or = [
+        { materialName: { $regex: search, $options: 'i' } },
+        { source: { $regex: search, $options: 'i' } },
+      ];
+    }
+
     const [data, total] = await Promise.all([
       this.rawMaterialModel
-        .find()
-        .sort({ createdAt: -1 })
+        .find(filter)
+        .sort({ receivedAt: -1 })
         .skip(skip)
         .limit(limit)
         .exec(),
-      this.rawMaterialModel.countDocuments().exec(),
+      this.rawMaterialModel.countDocuments(filter).exec(),
     ]);
     return {
       data,
       total,
       page,
-      limit,
       totalPages: Math.ceil(total / limit),
     };
   }
@@ -188,6 +195,88 @@ export class MaterialService {
     }
 
     return updatedMaterial;
+  }
+
+  async getRawMaterialStats() {
+    const now = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(now.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    // Aggregate daily counts and quantity*price for the last 7 days
+    const dailyAgg = await this.rawMaterialModel
+      .aggregate([
+        {
+          $match: {
+            receivedAt: { $gte: sevenDaysAgo, $lte: now },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$receivedAt' },
+            },
+            count: { $sum: 1 },
+            totalQuantity: { $sum: '$quantity' },
+            totalValue: { $sum: { $multiply: ['$quantity', '$price'] } },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ])
+      .exec();
+
+    // Fill in missing days
+    const dailyCounts: {
+      date: string;
+      count: number;
+      totalValue: number;
+    }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const found = dailyAgg.find((item: any) => item._id === dateStr);
+      dailyCounts.push({
+        date: dateStr,
+        count: found ? found.count : 0,
+        totalValue: found ? found.totalValue : 0,
+      });
+    }
+
+    const totalThisWeek = dailyCounts.reduce((sum, d) => sum + d.count, 0);
+    const totalInvestmentThisWeek = dailyCounts.reduce(
+      (sum, d) => sum + d.totalValue,
+      0,
+    );
+
+    // Count unique sources in last 7 days
+    const activeSourcesAgg = await this.rawMaterialModel
+      .aggregate([
+        {
+          $match: {
+            receivedAt: { $gte: sevenDaysAgo, $lte: now },
+          },
+        },
+        {
+          $group: {
+            _id: '$source',
+          },
+        },
+        {
+          $count: 'count',
+        },
+      ])
+      .exec();
+
+    const activeSources =
+      activeSourcesAgg.length > 0 ? activeSourcesAgg[0].count : 0;
+
+    return {
+      dailyCounts,
+      totalThisWeek,
+      totalInvestmentThisWeek,
+      activeSources,
+    };
   }
 
   async getCompanyMaterialStats() {

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, UseGuards, Delete, Param } from '@nestjs/common';
+import { Controller, Post, Body, Res, UseGuards, Delete, Param, Get } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { GetEmployeesDto } from '../dto/admin/GetEmployees.dto';
 import type { Response } from 'express';
@@ -21,6 +21,14 @@ export class AdminController {
     @Res() res: Response,
   ) {
     const data = await this.adminService.getEmployees(getEmployeesDto);
+    return res.status(200).send(data);
+  }
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.TEMP_ADMIN, Role.MANAGER)
+  @Get('get-all-employee')
+  async getEmployeesList(@Res() res: Response) {
+    const data = await this.adminService.getEmployeesList();
     return res.status(200).send(data);
   }
 

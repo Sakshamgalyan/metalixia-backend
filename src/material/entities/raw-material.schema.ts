@@ -26,6 +26,9 @@ export class RawMaterial {
     @Prop({ required: true })
     receivedById: string;
 
+    @Prop({ type: Date, required: true })
+    expectedOn: Date;
+
     @Prop()
     receivedAt: Date;
 

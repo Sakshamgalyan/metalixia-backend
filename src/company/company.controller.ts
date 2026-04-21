@@ -91,8 +91,9 @@ export class CompanyController {
   async getAllParts(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Query('search') search?: string,
   ) {
-    return await this.companyService.getAllParts(page, limit);
+    return await this.companyService.getAllParts(page, limit, search);
   }
 
   @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.MANAGER)

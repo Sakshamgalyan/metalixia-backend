@@ -44,11 +44,26 @@ export class MaterialController {
   async getRawMaterials(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
+    @Query('search') search?: string,
   ) {
     const res = await this.materialService.getRawMaterials(
       Number(page),
       Number(limit),
+      search,
     );
+    return res;
+  }
+
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.REPORT_ADMIN,
+    Role.MANAGER,
+    Role.QUALITY,
+    Role.TEMP_ADMIN,
+  )
+  @Get('raw/stats')
+  async getRawMaterialStats() {
+    const res = await this.materialService.getRawMaterialStats();
     return res;
   }
 
