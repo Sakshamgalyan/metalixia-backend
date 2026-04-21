@@ -3,11 +3,11 @@ import { IsNotEmpty, IsNumber, IsOptional, IsString, IsDateString } from 'class-
 export class CreateCompanyMaterialDto {
     @IsNotEmpty()
     @IsString()
-    materialName: string;
+    partId: string;
 
     @IsNotEmpty()
     @IsString()
-    companyName: string;
+    companyId: string;
 
     @IsNotEmpty()
     @IsNumber()

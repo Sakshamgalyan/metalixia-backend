@@ -6,10 +6,19 @@ export type CompanyMaterialDocument = CompanyMaterial & Document;
 @Schema({ timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' } })
 export class CompanyMaterial {
     @Prop({ required: true })
-    materialName: string;
+    partName: string;
+
+    @Prop({ required: true })
+    partNumber: string;
+
+    @Prop({ required: true })
+    partId: string;
 
     @Prop({ required: true })
     companyName: string;
+
+    @Prop({ required: true })
+    companyId: string;
 
     @Prop({ required: true })
     quantity: number;
