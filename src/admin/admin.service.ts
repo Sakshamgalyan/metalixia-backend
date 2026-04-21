@@ -15,6 +15,10 @@ export class AdminService {
     return users;
   }
 
+  async getEmployeesList() {
+    return this.userService.findAllEmployeesForList();
+  }
+
   async addEmployee(addEmployeeDto: AddEmployeeDto) {
     const hashedPassword = await bcrypt.hash(addEmployeeDto.password, 10);
     await this.userService.createUser({

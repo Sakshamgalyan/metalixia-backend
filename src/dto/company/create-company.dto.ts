@@ -3,10 +3,6 @@ import { IsString, IsNotEmpty, IsOptional, IsEmail } from 'class-validator';
 export class CreateCompanyDto {
   @IsString()
   @IsNotEmpty()
-  companyId: string;
-
-  @IsString()
-  @IsNotEmpty()
   companyName: string;
 
   @IsEmail()

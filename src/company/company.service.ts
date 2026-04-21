@@ -192,15 +192,20 @@ export class CompanyService {
     }
   }
 
-  async getAllParts(page = 1, limit = 10) {
+  async getAllParts(page: number = 1, limit: number = 10, search?: string) {
     const companies = await this.companyModel.find().lean().exec();
 
     if (!companies.length) {
-      throw new NotFoundException('No companies found');
+      return {
+        totalCount: 0,
+        totalPages: 0,
+        currentPage: Number(page),
+        data: [],
+      };
     }
 
     // Flatten parts
-    const allParts = companies.reduce((acc: any[], company: any) => {
+    let allParts = companies.reduce((acc: any[], company: any) => {
       if (company.parts && Array.isArray(company.parts)) {
         const companyParts = company.parts.map((p: any) => ({
           ...p,
@@ -211,6 +216,26 @@ export class CompanyService {
       }
       return acc;
     }, []);
+
+    // Filter by search query if provided
+    if (search) {
+      const searchLower = search.toLowerCase();
+      allParts = allParts.filter((part: any) => {
+        return (
+          part.partName?.toLowerCase().includes(searchLower) ||
+          part.partNumber?.toLowerCase().includes(searchLower) ||
+          part.companyName?.toLowerCase().includes(searchLower) ||
+          part.description?.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // Sort by latest added first
+    allParts.sort((a: any, b: any) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
 
     // Pagination logic
     const totalCount = allParts.length;

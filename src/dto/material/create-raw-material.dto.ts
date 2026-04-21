@@ -28,4 +28,8 @@ export class CreateRawMaterialDto {
     @IsNotEmpty()
     @IsString()
     receivedById: string;
+
+    @IsNotEmpty()
+    @IsString()
+    expectedOn: string;
 }
