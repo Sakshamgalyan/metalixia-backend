@@ -1,5 +1,18 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+
+@Schema({ timestamps: true })
+export class PartItem {
+  @Prop()
+  partName: string;
+
+  @Prop()
+  partNumber: string;
+
+  @Prop()
+  description: string;
+}
+export const PartItemSchema = SchemaFactory.createForClass(PartItem);
 
 export type CompanyDocument = Company & Document;
 
@@ -19,6 +32,9 @@ export class Company {
 
   @Prop()
   contactPerson: string;
+
+  @Prop({ type: [PartItemSchema], default: [] })
+  parts: (PartItem & { _id: Types.ObjectId })[];
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);
