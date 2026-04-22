@@ -23,6 +23,14 @@ export class CreateRawMaterialDto {
 
     @IsNotEmpty()
     @IsString()
+    inventoryLocation: string;
+
+    @IsNotEmpty()
+    @IsString()
+    invoiceNumber: string;
+
+    @IsNotEmpty()
+    @IsString()
     receivedBy: string;
 
     @IsNotEmpty()
