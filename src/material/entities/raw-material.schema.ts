@@ -21,6 +21,12 @@ export class RawMaterial {
     source: string;
 
     @Prop({ required: true })
+    inventoryLocation: string;
+
+    @Prop({ required: true })
+    invoiceNumber: string;
+
+    @Prop({ required: true })
     receivedBy: string;
 
     @Prop({ required: true })
