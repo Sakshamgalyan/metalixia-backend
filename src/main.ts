@@ -15,12 +15,7 @@ async function metalixia() {
 
   app.use(cookieParser());
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:2000',
-      'https://metalixia-fe.onrender.com',
-      "https://dashboard.galyan.in",
-    ],
+    origin: ['http://localhost:2000', 'https://dashboard.galyan.in'],
     credentials: true,
   });
   const jwtService = app.get(JwtService);
@@ -28,14 +23,15 @@ async function metalixia() {
   const reflector = app.get(Reflector);
   const userService = app.get(UserService);
 
-  app.useGlobalGuards(new AuthGuard(jwtService, configService, reflector, userService));
+  app.useGlobalGuards(
+    new AuthGuard(jwtService, configService, reflector, userService),
+  );
   app.useGlobalInterceptors(new LoggingInterceptor());
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-
 
   const port = process.env.PORT ?? 5000;
   await app.listen(port, '0.0.0.0');
   logger.log(`Application is running on: ${await app.getUrl()}`);
 }
-metalixia();
+metalixia().catch(console.error);

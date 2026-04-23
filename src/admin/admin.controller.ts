@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Res, UseGuards, Delete, Param, Get } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Res,
+  UseGuards,
+  Delete,
+  Param,
+  Get,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { GetEmployeesDto } from '../dto/admin/GetEmployees.dto';
 import type { Response } from 'express';
@@ -11,7 +20,7 @@ import { UpdateEmployeeDto } from 'src/dto/admin/UpdateEmployee.dto';
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) { }
+  constructor(private readonly adminService: AdminService) {}
 
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.TEMP_ADMIN)
@@ -57,10 +66,7 @@ export class AdminController {
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.TEMP_ADMIN)
   @Delete('delete-employee/:id')
-  async deleteEmployee(
-    @Param('id') id: string,
-    @Res() res: Response,
-  ) {
+  async deleteEmployee(@Param('id') id: string, @Res() res: Response) {
     const data = await this.adminService.deleteEmployee(id);
     return res.status(200).send(data);
   }

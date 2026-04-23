@@ -1,43 +1,43 @@
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateRawMaterialDto {
-    @IsNotEmpty()
-    @IsString()
-    materialName: string;
+  @IsNotEmpty()
+  @IsString()
+  materialName: string;
 
-    @IsNotEmpty()
-    @IsNumber()
-    quantity: number;
+  @IsNotEmpty()
+  @IsNumber()
+  quantity: number;
 
-    @IsNotEmpty()
-    @IsString()
-    unit: string;
+  @IsNotEmpty()
+  @IsString()
+  unit: string;
 
-    @IsNotEmpty()
-    @IsNumber()
-    price: number;
+  @IsNotEmpty()
+  @IsNumber()
+  price: number;
 
-    @IsNotEmpty()
-    @IsString()
-    source: string;
+  @IsNotEmpty()
+  @IsString()
+  source: string;
 
-    @IsNotEmpty()
-    @IsString()
-    inventoryLocation: string;
+  @IsNotEmpty()
+  @IsString()
+  inventoryLocation: string;
 
-    @IsNotEmpty()
-    @IsString()
-    invoiceNumber: string;
+  @IsNotEmpty()
+  @IsString()
+  invoiceNumber: string;
 
-    @IsNotEmpty()
-    @IsString()
-    receivedBy: string;
+  @IsNotEmpty()
+  @IsString()
+  receivedBy: string;
 
-    @IsNotEmpty()
-    @IsString()
-    receivedById: string;
+  @IsNotEmpty()
+  @IsString()
+  receivedById: string;
 
-    @IsNotEmpty()
-    @IsString()
-    expectedOn: string;
+  @IsNotEmpty()
+  @IsString()
+  expectedOn: string;
 }

@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { buildPaginatedResponse } from 'src/common/utils/pagination.util';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Payslip, PayslipDocument } from './entities/payslip.schema';
 import { UserService } from 'src/user/user.service';
-import * as fs from 'fs';
 import { CreatePayslipDto } from 'src/dto/paySlip/create-payslip.dto';
 
 @Injectable()
@@ -31,7 +31,11 @@ export class PayslipService {
     return result;
   }
 
-  async findAllByEmployeeId(page: number = 1, limit: number = 10, employeeId?: string) {
+  async findAllByEmployeeId(
+    page: number = 1,
+    limit: number = 10,
+    employeeId?: string,
+  ) {
     this.logger.debug(
       `Fetching payslips: page ${page}, limit: ${limit}, employeeId: ${employeeId || 'all'}`,
     );
@@ -78,16 +82,7 @@ export class PayslipService {
     });
 
     this.logger.log(`Found ${payslips.length} payslips (total: ${total})`);
-    return {
-      status: 'success',
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async allPayslips(page: number = 1, limit: number = 10) {
@@ -129,16 +124,7 @@ export class PayslipService {
       };
     });
 
-    return {
-      status: 'success',
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async findOne(id: string) {
@@ -154,10 +140,11 @@ export class PayslipService {
     }
 
     try {
-      if (fs.existsSync(payslip.location)) {
-        fs.unlinkSync(payslip.location);
+      try {
+        const fsPromises = require('fs/promises');
+        await fsPromises.unlink(payslip.location);
         this.logger.log(`Deleted payslip file: ${payslip.location}`);
-      }
+      } catch (fileErr) {}
     } catch (error) {
       this.logger.error(`Failed to delete file: ${payslip.location}`, error);
     }

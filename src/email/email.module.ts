@@ -7,7 +7,10 @@ import {
   EmailTemplate,
   EmailTemplateSchema,
 } from './entities/email-template.schema';
-import { Verification, VerificationSchema } from './entities/verification.schema';
+import {
+  Verification,
+  VerificationSchema,
+} from './entities/verification.schema';
 import { UserModule } from 'src/user/user.module';
 
 @Module({
@@ -23,4 +26,4 @@ import { UserModule } from 'src/user/user.module';
   controllers: [EmailController],
   exports: [EmailService],
 })
-export class EmailModule { }
+export class EmailModule {}

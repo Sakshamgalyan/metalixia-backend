@@ -136,7 +136,10 @@ export class UserService {
   }
 
   async findAllEmployeesForList() {
-    const users = await this.userModel.find({}).select('name employeeId').exec();
+    const users = await this.userModel
+      .find({})
+      .select('name employeeId')
+      .exec();
     return users.map((user) => ({
       value: `${user._id.toString()} (${user.employeeId})`,
       label: `${user.name} (${user.employeeId})`,

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { buildPaginatedResponse } from 'src/common/utils/pagination.util';
 import { ReportUploadDto } from 'src/dto/employee/reportUpload.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -80,15 +81,7 @@ export class EmployeeService {
       status: report.status,
     }));
 
-    return {
-      status: 'success',
-      data: reportData,
-      meta: {
-        total,
-        page,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return buildPaginatedResponse(reportData, total, page, limit);
   }
 
   async getAllReports(page: number = 1, limit: number = 10) {
@@ -125,15 +118,7 @@ export class EmployeeService {
       };
     });
 
-    return {
-      status: 'success',
-      data: reportData,
-      meta: {
-        total,
-        page,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return buildPaginatedResponse(reportData, total, page, limit);
   }
 
   async approveReport(reportApproveDto: ReportApproveDto) {
@@ -235,15 +220,19 @@ export class EmployeeService {
 
     for (const report of reportsToDelete) {
       try {
-        if (fs.existsSync(report.location)) {
-          fs.unlinkSync(report.location);
+        try {
+          await fs.promises.unlink(report.location);
           this.logger.log(`Deleted file: ${report.location}`);
+        } catch (fileError) {
+          // ignore if file doesn't exist
         }
         await this.reportModel.findByIdAndDelete(report._id).exec();
-        this.logger.log(`Deleted database record for report: ${report._id}`);
+        this.logger.log(
+          `Deleted database record for report: ${report._id.toString()}`,
+        );
       } catch (error) {
         this.logger.error(
-          `Failed to delete report ${report._id}: ${error.message}`,
+          `Failed to delete report ${report._id.toString()}: ${error.message}`,
         );
       }
     }
@@ -276,16 +265,7 @@ export class EmployeeService {
     this.logger.log(
       `Found ${reports.length} reports for employeeId: ${employeeId} (total: ${total})`,
     );
-    return {
-      status: 'success',
-      data: reports,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return buildPaginatedResponse(reports, total, page, limit);
   }
 
   async getMailedReports(page: number = 1, limit: number = 10) {
@@ -313,16 +293,7 @@ export class EmployeeService {
       status: report.status,
     }));
 
-    return {
-      status: 'success',
-      data: reportData,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return buildPaginatedResponse(reportData, total, page, limit);
   }
   async getEmployees(page: number = 1, limit: number = 1000) {
     return this.userService.findByEmployee({ page, limit });

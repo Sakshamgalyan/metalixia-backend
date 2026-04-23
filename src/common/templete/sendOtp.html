@@ -5,31 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Email Verification</title>
   </head>
-  <body>
-    <div
-      style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto"
-    >
-      <h2 style="color: #333">Email Verification</h2>
-      <p>Your OTP for email verification is:</p>
-      <div
-        style="
-          background-color: #f4f4f4;
-          padding: 15px;
-          text-align: center;
-          font-size: 32px;
-          font-weight: bold;
-          letter-spacing: 5px;
-          margin: 20px 0;
-        "
-      >
-        ${otp}
-      </div>
-      <p style="color: #666">
-        This OTP will expire in ${expiryMinutes} minutes.
-      </p>
-      <p style="color: #666">
-        If you didn't request this OTP, please ignore this email.
-      </p>
-    </div>
+  <body style="margin: 0; padding: 0; background-color: #f9fafb">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td align="center" style="padding: 20px">
+          <table
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="
+              background-color: #ffffff;
+              border-radius: 8px;
+              padding: 30px;
+              font-family: Arial, sans-serif;
+            "
+          >
+            <tr>
+              <td align="center">
+                <h2 style="margin: 0; color: #333">Email Verification</h2>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding-top: 20px; color: #555; font-size: 15px">
+                Hello,
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding-top: 10px; color: #555; font-size: 15px">
+                Use the One-Time Password (OTP) below to verify your email
+                address:
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center">
+                <div
+                  style="
+                    background-color: #f4f4f4;
+                    padding: 15px;
+                    text-align: center;
+                    font-size: 30px;
+                    font-weight: bold;
+                    letter-spacing: 6px;
+                    margin: 25px 0;
+                    border-radius: 6px;
+                    color: #111;
+                  "
+                >
+                  ${otp}
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="color: #666; font-size: 14px">
+                This OTP is valid for <strong>10 minutes</strong>.
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding-top: 15px; color: #666; font-size: 14px">
+                If you did not request this, you can safely ignore this email.
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                style="
+                  padding-top: 30px;
+                  color: #999;
+                  font-size: 12px;
+                  text-align: center;
+                "
+              >
+                © ${new Date().getFullYear()} Your Company. All rights reserved.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>
