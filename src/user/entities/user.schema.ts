@@ -4,7 +4,7 @@ import { Role } from 'src/dto/Role/Role.dto';
 
 export type UserDocument = HydratedDocument<User>;
 
-@Schema()
+@Schema({ timestamps: true })
 export class User {
   @Prop({ required: true })
   name: string;
@@ -24,14 +24,8 @@ export class User {
   @Prop({ default: Role.USER })
   role: string;
 
-  @Prop()
+  @Prop({ unique: true })
   employeeId: string;
-
-  @Prop({ default: Date.now() })
-  createdOn: Date;
-
-  @Prop({ default: Date.now() })
-  updatedOn: Date;
 
   @Prop()
   refreshToken: string;
@@ -47,20 +41,9 @@ export class User {
 
   @Prop()
   address: string;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
-
-UserSchema.pre('save', async function () {
-  if (this.isNew) {
-    const lastUser = await (this.constructor as any)
-      .findOne()
-      .sort({ _id: -1 });
-    if (lastUser && lastUser.employeeId) {
-      const lastId = parseInt(lastUser.employeeId);
-      this.employeeId = !isNaN(lastId) ? (lastId + 1).toString() : '1';
-    } else {
-      this.employeeId = '1';
-    }
-  }
-});

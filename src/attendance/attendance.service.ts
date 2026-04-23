@@ -4,8 +4,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Attendance, AttendanceDocument } from './entities/attendance.schema';
 import { UserService } from 'src/user/user.service';
-import * as fs from 'fs';
 import { CreateAttendanceDto } from 'src/dto/attendance/create-attendance.dto';
+import { FileService } from 'src/common/file.service';
 
 @Injectable()
 export class AttendanceService {
@@ -15,6 +15,7 @@ export class AttendanceService {
     @InjectModel(Attendance.name)
     private attendanceModel: Model<AttendanceDocument>,
     private readonly userService: UserService,
+    private readonly fileService: FileService,
   ) {}
 
   async create(
@@ -97,11 +98,7 @@ export class AttendanceService {
     }
 
     try {
-      try {
-        const fsPromises = require('fs/promises');
-        await fsPromises.unlink(attendance.location);
-        this.logger.log(`Deleted attendance file: ${attendance.location}`);
-      } catch (fileErr) {}
+      await this.fileService.deleteFile(attendance.location);
     } catch (error) {
       this.logger.error(`Failed to delete file: ${attendance.location}`, error);
     }

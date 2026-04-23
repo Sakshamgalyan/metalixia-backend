@@ -27,6 +27,7 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { UploadedFile, HttpException, HttpStatus } from '@nestjs/common';
+import { FileService } from 'src/common/file.service';
 
 @Controller('auth')
 export class AuthController {
@@ -34,6 +35,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly fileService: FileService,
   ) {}
 
   private setCookies(
@@ -374,12 +376,8 @@ export class AuthController {
       // Delete old profile picture if exists
       if (user.profilePicture) {
         const oldFilePath = join(process.cwd(), user.profilePicture);
-        const fsPromises = require('fs/promises');
         try {
-          await fsPromises.unlink(oldFilePath);
-          this.logger.log(
-            `Deleted old profile picture: ${user.profilePicture}`,
-          );
+          await this.fileService.deleteFile(oldFilePath);
         } catch (e) {
           // ignore error if file not found
         }
@@ -394,8 +392,7 @@ export class AuthController {
       const oldPath = file.path;
       const newPath = join(process.cwd(), 'uploads', 'profiles', newFilename);
 
-      const fsPromises = require('fs/promises');
-      await fsPromises.rename(oldPath, newPath);
+      await this.fileService.moveFile(oldPath, newPath);
 
       const filename = `/uploads/profiles/${newFilename}`;
 

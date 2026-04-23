@@ -24,12 +24,8 @@ export class AuthService {
   ) {}
 
   async registerUser(registerDto: RegisterUserDto) {
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-    const user = await this.userService.createUser({
-      ...registerDto,
-      password: hashedPassword,
-    });
-    this.logger.log(`User registered: ${user.email} (ID: ${user._id.toString()})`);
+    const user = await this.userService.createUser(registerDto);
+    this.logger.log(`User registered: ${user.email} (ID: ${user._id})`);
     const tokens = await this.getTokens(user._id.toString(), user.role);
     await this.updateRefreshToken(user._id.toString(), tokens.refresh_token);
     return tokens;

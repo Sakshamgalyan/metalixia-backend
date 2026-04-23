@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type ReportDocument = Report & Document;
 
-@Schema({ timestamps: { createdAt: 'uploadedTime', updatedAt: 'updatedTime' } })
+@Schema({ timestamps: true })
 export class Report {
   @Prop({ required: true })
   name: string;
@@ -32,6 +32,9 @@ export class Report {
 
   @Prop()
   deletedAt: Date;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const ReportSchema = SchemaFactory.createForClass(Report);

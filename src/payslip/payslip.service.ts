@@ -5,6 +5,7 @@ import { Model } from 'mongoose';
 import { Payslip, PayslipDocument } from './entities/payslip.schema';
 import { UserService } from 'src/user/user.service';
 import { CreatePayslipDto } from 'src/dto/paySlip/create-payslip.dto';
+import { FileService } from 'src/common/file.service';
 
 @Injectable()
 export class PayslipService {
@@ -13,6 +14,7 @@ export class PayslipService {
   constructor(
     @InjectModel(Payslip.name) private payslipModel: Model<PayslipDocument>,
     private readonly userService: UserService,
+    private readonly fileService: FileService,
   ) {}
 
   async create(file: Express.Multer.File, createPayslipDto: CreatePayslipDto) {
@@ -140,11 +142,7 @@ export class PayslipService {
     }
 
     try {
-      try {
-        const fsPromises = require('fs/promises');
-        await fsPromises.unlink(payslip.location);
-        this.logger.log(`Deleted payslip file: ${payslip.location}`);
-      } catch (fileErr) {}
+      await this.fileService.deleteFile(payslip.location);
     } catch (error) {
       this.logger.error(`Failed to delete file: ${payslip.location}`, error);
     }

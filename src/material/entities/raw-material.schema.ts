@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type RawMaterialDocument = RawMaterial & Document;
 
-@Schema({ timestamps: { createdAt: 'receivedAt', updatedAt: 'updatedAt' } })
+@Schema({ timestamps: true })
 export class RawMaterial {
   @Prop({ required: true })
   materialName: string;

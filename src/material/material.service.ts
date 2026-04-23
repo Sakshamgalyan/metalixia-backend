@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { buildPaginatedResponse } from 'src/common/utils/pagination.util';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model } from 'mongoose';
 import {
@@ -56,12 +57,7 @@ export class MaterialService {
         .exec(),
       this.rawMaterialModel.countDocuments(filter).exec(),
     ]);
-    return {
-      data,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    };
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async deleteRawMaterial(id: string): Promise<void> {
@@ -132,13 +128,7 @@ export class MaterialService {
         .exec(),
       this.companyMaterialModel.countDocuments(filter).exec(),
     ]);
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async updateCompanyMaterial(

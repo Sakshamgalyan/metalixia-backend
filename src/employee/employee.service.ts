@@ -6,9 +6,9 @@ import { Model } from 'mongoose';
 import { Report, ReportDocument } from './entities/report.schema';
 import { ReportDeleteDto } from 'src/dto/employee/reportDelete.dto';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import * as fs from 'fs';
 import { ReportApproveDto } from 'src/dto/employee/ReportApprove.dto';
 import { UserService } from 'src/user/user.service';
+import { FileService } from 'src/common/file.service';
 
 @Injectable()
 export class EmployeeService {
@@ -17,6 +17,7 @@ export class EmployeeService {
   constructor(
     @InjectModel(Report.name) private reportModel: Model<ReportDocument>,
     private readonly userService: UserService,
+    private readonly fileService: FileService,
   ) {}
 
   async uploadReport(
@@ -220,12 +221,7 @@ export class EmployeeService {
 
     for (const report of reportsToDelete) {
       try {
-        try {
-          await fs.promises.unlink(report.location);
-          this.logger.log(`Deleted file: ${report.location}`);
-        } catch (fileError) {
-          // ignore if file doesn't exist
-        }
+        await this.fileService.deleteFile(report.location);
         await this.reportModel.findByIdAndDelete(report._id).exec();
         this.logger.log(
           `Deleted database record for report: ${report._id.toString()}`,
