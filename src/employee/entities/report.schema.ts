@@ -17,7 +17,11 @@ export class Report {
   @Prop({ required: true })
   employeeId: string;
 
-  @Prop({ required: true, enum: ["pending", "approved", "rejected", "mailed"], default: "pending" })
+  @Prop({
+    required: true,
+    enum: ['pending', 'approved', 'rejected', 'mailed'],
+    default: 'pending',
+  })
   status: string;
 
   @Prop({ required: true })

@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { buildPaginatedResponse } from 'src/common/utils/pagination.util';
 import SendGrid from '@sendgrid/mail';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
@@ -176,15 +177,7 @@ export class EmailService {
     this.logger.log(
       `Found ${emails.length} emails for sender ${senderId} (total: ${total})`,
     );
-    return {
-      data: emails,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return buildPaginatedResponse(emails, total, page, limit);
   }
 
   async getTemplates() {

@@ -8,7 +8,7 @@ import { AuthGuard } from './guards/auth.guard';
 @UseGuards(AuthGuard)
 export class UploadsController {
   @Get('profiles/:filename')
-  async getProfilePicture(
+  getProfilePicture(
     @Param('filename') filename: string,
     @Res() res: Response,
   ) {

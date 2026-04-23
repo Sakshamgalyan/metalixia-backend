@@ -5,23 +5,23 @@ export type VerificationDocument = HydratedDocument<Verification>;
 
 @Schema({ timestamps: true })
 export class Verification {
-    @Prop({ required: true })
-    email: string;
+  @Prop({ required: true })
+  email: string;
 
-    @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-    userId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  userId: Types.ObjectId;
 
-    @Prop({ required: true })
-    otp: string;
+  @Prop({ required: true })
+  otp: string;
 
-    @Prop({ required: true })
-    expiresAt: Date;
+  @Prop({ required: true })
+  expiresAt: Date;
 
-    @Prop({ default: 0 })
-    useCount: number;
+  @Prop({ default: 0 })
+  useCount: number;
 
-    @Prop({ default: false })
-    isUsed: boolean;
+  @Prop({ default: false })
+  isUsed: boolean;
 }
 
 export const VerificationSchema = SchemaFactory.createForClass(Verification);

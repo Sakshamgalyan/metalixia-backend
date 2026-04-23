@@ -29,7 +29,7 @@ export class AuthService {
       ...registerDto,
       password: hashedPassword,
     });
-    this.logger.log(`User registered: ${user.email} (ID: ${user._id})`);
+    this.logger.log(`User registered: ${user.email} (ID: ${user._id.toString()})`);
     const tokens = await this.getTokens(user._id.toString(), user.role);
     await this.updateRefreshToken(user._id.toString(), tokens.refresh_token);
     return tokens;
@@ -37,7 +37,7 @@ export class AuthService {
 
   async loginUser(loginDto: LoginUserDto) {
     const user = await this.userService.loginUser(loginDto);
-    this.logger.log(`User logged in: ${user.email} (ID: ${user._id})`);
+    this.logger.log(`User logged in: ${user.email} (ID: ${user._id.toString()})`);
     const tokens = await this.getTokens(user._id.toString(), user.role);
     await this.updateRefreshToken(user._id.toString(), tokens.refresh_token);
     return tokens;

@@ -374,12 +374,14 @@ export class AuthController {
       // Delete old profile picture if exists
       if (user.profilePicture) {
         const oldFilePath = join(process.cwd(), user.profilePicture);
-        const fs = require('fs');
-        if (fs.existsSync(oldFilePath)) {
-          fs.unlinkSync(oldFilePath);
+        const fsPromises = require('fs/promises');
+        try {
+          await fsPromises.unlink(oldFilePath);
           this.logger.log(
             `Deleted old profile picture: ${user.profilePicture}`,
           );
+        } catch (e) {
+          // ignore error if file not found
         }
       }
 
@@ -392,8 +394,8 @@ export class AuthController {
       const oldPath = file.path;
       const newPath = join(process.cwd(), 'uploads', 'profiles', newFilename);
 
-      const fs = require('fs');
-      fs.renameSync(oldPath, newPath);
+      const fsPromises = require('fs/promises');
+      await fsPromises.rename(oldPath, newPath);
 
       const filename = `/uploads/profiles/${newFilename}`;
 

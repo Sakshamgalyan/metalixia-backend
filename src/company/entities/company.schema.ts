@@ -18,7 +18,6 @@ export type CompanyDocument = Company & Document;
 
 @Schema({ timestamps: true })
 export class Company {
-
   @Prop({ required: true })
   companyName: string;
 

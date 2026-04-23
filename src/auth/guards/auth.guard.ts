@@ -18,7 +18,7 @@ export class AuthGuard implements CanActivate {
     private configService: ConfigService,
     private reflector: Reflector,
     private userService: UserService,
-  ) { }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -47,7 +47,9 @@ export class AuthGuard implements CanActivate {
 
       // Check if email is verified
       if (!user.isVerified) {
-        throw new UnauthorizedException('Email not verified. Please verify your email to continue.');
+        throw new UnauthorizedException(
+          'Email not verified. Please verify your email to continue.',
+        );
       }
 
       request['user'] = payload;

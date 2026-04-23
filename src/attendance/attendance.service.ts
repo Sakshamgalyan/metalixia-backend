@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { buildPaginatedResponse } from 'src/common/utils/pagination.util';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Attendance, AttendanceDocument } from './entities/attendance.schema';
@@ -84,16 +85,7 @@ export class AttendanceService {
     this.logger.log(
       `Found ${attendances.length} attendance records (total: ${total})`,
     );
-    return {
-      status: 'success',
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async remove(id: string) {
@@ -105,10 +97,11 @@ export class AttendanceService {
     }
 
     try {
-      if (fs.existsSync(attendance.location)) {
-        fs.unlinkSync(attendance.location);
+      try {
+        const fsPromises = require('fs/promises');
+        await fsPromises.unlink(attendance.location);
         this.logger.log(`Deleted attendance file: ${attendance.location}`);
-      }
+      } catch (fileErr) {}
     } catch (error) {
       this.logger.error(`Failed to delete file: ${attendance.location}`, error);
     }
