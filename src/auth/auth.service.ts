@@ -12,6 +12,9 @@ import { LoginUserDto } from 'src/dto/auth/loginUser.dto';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from 'src/email/email.service';
 import { ResetPasswordDto } from '../dto/auth/reset-password.dto';
+import { UpdateProfileDto } from 'src/dto/auth/update-profile.dto';
+import { PaginatedResponse } from 'src/common/utils/pagination.util';
+import { User } from 'src/user/entities/user.schema';
 
 @Injectable()
 export class AuthService {
@@ -33,7 +36,9 @@ export class AuthService {
 
   async loginUser(loginDto: LoginUserDto) {
     const user = await this.userService.loginUser(loginDto);
-    this.logger.log(`User logged in: ${user.email} (ID: ${user._id.toString()})`);
+    this.logger.log(
+      `User logged in: ${user.email} (ID: ${user._id.toString()})`,
+    );
     const tokens = await this.getTokens(user._id.toString(), user.role);
     await this.updateRefreshToken(user._id.toString(), tokens.refresh_token);
     return tokens;
@@ -45,7 +50,7 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string) {
-    let payload;
+    let payload : any;
     try {
       payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
@@ -102,7 +107,7 @@ export class AuthService {
         { sub: userId, role },
         {
           secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-          expiresIn: '7d',
+          expiresIn: '30d',
         },
       ),
     ]);
@@ -154,7 +159,7 @@ export class AuthService {
     return { message: 'Password reset successfully', status: 'success' };
   }
 
-  async updateProfile(userId: string, updateProfileDto: any) {
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
     this.logger.log(`Updating profile for user: ${userId}`);
     return this.userService.updateProfile(userId, updateProfileDto);
   }
@@ -179,7 +184,11 @@ export class AuthService {
     return this.userService.updateProfilePicture(userId, filename);
   }
 
-  async searchEmployees(searchTerm: string, page: number, limit: number) {
+  async searchEmployees(
+    searchTerm: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<User>> {
     this.logger.debug(
       `Searching employees: term='${searchTerm}', page=${page}, limit=${limit}`,
     );

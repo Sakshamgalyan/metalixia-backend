@@ -29,9 +29,12 @@ export class UserService {
     this.logger.log(`Creating user with email: ${registerDto.email}`);
     try {
       const employeeId = await this.commonService.generateEmployeeId();
+      const hashedPassword = await bcrypt.hash(registerDto.password, 10);
       const user = await this.userModel.create({
         ...registerDto,
         employeeId,
+        password: hashedPassword,
+        role: 'user',
       });
       this.logger.log(
         `User created successfully: ${user.email} (ID: ${user._id}, EmployeeID: ${user.employeeId})`,

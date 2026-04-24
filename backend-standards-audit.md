@@ -48,6 +48,13 @@ This document identifies bugs, code duplications, and standard violations in the
 
 ## Recommended Improvements
 1. **Abstract Pagination**: Create a base service or utility for paginated queries.
-2. **Standardize Mongoose Refs**: Use Mongoose `ObjectId` and `ref` to allow automatic `populate()` instead of manual in-memory joins.
-3. **Unified File Service**: Create a dedicated service for file uploads and deletions to centralize error handling and use async `fs` methods.
-4. **Centralize ID Generation**: Use a dedicated collection or transaction for auto-incrementing IDs to ensure uniqueness.
+5. **Standardize Mongoose Refs**: Use Mongoose `ObjectId` and `ref` to allow automatic `populate()` instead of manual in-memory joins.
+6. **Unified File Service**: Create a dedicated service for file uploads and deletions to centralize error handling and use async `fs` methods.
+7. **Centralize ID Generation**: Use a dedicated collection or transaction for auto-incrementing IDs to ensure uniqueness.
+
+## 5. Linting & Type Safety Issues (New)
+> [!WARNING]
+> The backend fails strict ESLint checks primarily due to excessive use of explicit `any` and unsafe assignments.
+- Over 300 lint problems flagged (251 errors, 54 warnings).
+- **Unsafe ANY usage**: Found heavily across services (e.g., `attendance.controller.ts`, `payslip.controller.ts`, `app.module.ts`, `user.service.ts`).
+- **Recommendation**: Define specific DTOs and typing interfaces to replace `any` declarations and remove fast-and-loose object manipulation.
