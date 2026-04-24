@@ -24,6 +24,89 @@ import { Role } from 'src/dto/Role/Role.dto';
 export class MaterialController {
   constructor(private readonly materialService: MaterialService) {}
 
+  // ── Inventory Endpoints ───────────────────────────────────────
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.REPORT_ADMIN,
+    Role.MANAGER,
+    Role.QUALITY,
+    Role.TEMP_ADMIN,
+  )
+  @Get('inventory')
+  async getInventoryItems(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+    @Query('search') search?: string,
+    @Query('type') type?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.materialService.getInventoryItems(
+      Number(page),
+      Number(limit),
+      search,
+      type,
+      status,
+    );
+  }
+
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.REPORT_ADMIN,
+    Role.MANAGER,
+    Role.QUALITY,
+    Role.TEMP_ADMIN,
+  )
+  @Get('inventory/stats')
+  async getInventoryStats() {
+    return this.materialService.getInventoryStats();
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.MANAGER)
+  @Patch(':type/:id/status')
+  async updateMaterialStatus(
+    @Param('type') type: string,
+    @Param('id') id: string,
+    @Body('status') status: string,
+  ) {
+    await this.materialService.updateMaterialStatus(type, id, status);
+    return { message: 'Material status updated successfully' };
+  }
+
+  // ── Dispatch Endpoints ────────────────────────────────────────
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.REPORT_ADMIN,
+    Role.MANAGER,
+    Role.QUALITY,
+    Role.TEMP_ADMIN,
+  )
+  @Get('dispatch')
+  async getDispatchItems(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.materialService.getDispatchItems(
+      Number(page),
+      Number(limit),
+      search,
+      status,
+    );
+  }
+
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.REPORT_ADMIN,
+    Role.MANAGER,
+    Role.QUALITY,
+    Role.TEMP_ADMIN,
+  )
+  @Get('dispatch/stats')
+  async getDispatchStats() {
+    return this.materialService.getDispatchStats();
+  }
+
   @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.MANAGER)
   @Post('raw')
   async createRawMaterial(@Body() createRawMaterialDto: CreateRawMaterialDto) {
