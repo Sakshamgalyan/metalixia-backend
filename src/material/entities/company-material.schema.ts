@@ -44,6 +44,9 @@ export class CompanyMaterial {
   @Prop({ type: Date, default: null })
   receivedOn: Date;
 
+  @Prop({ default: 'received' })
+  status: string;
+
   @Prop()
   createdAt: Date;
 

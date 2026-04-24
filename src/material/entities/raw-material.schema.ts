@@ -38,6 +38,9 @@ export class RawMaterial {
   @Prop()
   receivedAt: Date;
 
+  @Prop({ default: 'received' })
+  status: string;
+
   @Prop()
   updatedAt: Date;
 }

@@ -15,6 +15,8 @@ import { PayslipModule } from './payslip/payslip.module';
 import { MaterialModule } from './material/material.module';
 import { CommonModule } from './common/common.module';
 import { CompanyModule } from './company/company.module';
+import { ProductionModule } from './production/production.module';
+import { QualityModule } from './quality/quality.module';
 
 @Module({
   imports: [
@@ -45,6 +47,8 @@ import { CompanyModule } from './company/company.module';
     AttendanceModule,
     MaterialModule,
     CompanyModule,
+    ProductionModule,
+    QualityModule,
   ],
   controllers: [AppController],
   providers: [AppService],
