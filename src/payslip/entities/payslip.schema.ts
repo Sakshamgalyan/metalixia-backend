@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type PayslipDocument = Payslip & Document;
 
-@Schema({ timestamps: { createdAt: 'createdOn', updatedAt: 'updatedOn' } })
+@Schema({ timestamps: true })
 export class Payslip {
   @Prop({ required: true })
   employeeId: string;
@@ -28,6 +28,9 @@ export class Payslip {
 
   @Prop()
   deletedAt: Date;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const PayslipSchema = SchemaFactory.createForClass(Payslip);

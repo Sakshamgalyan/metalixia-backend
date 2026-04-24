@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type AttendanceDocument = Attendance & Document;
 
-@Schema({ timestamps: { createdAt: 'createdOn', updatedAt: 'updatedOn' } })
+@Schema({ timestamps: true })
 export class Attendance {
   @Prop({ required: true })
   employeeId: string;
@@ -28,6 +28,9 @@ export class Attendance {
 
   @Prop()
   deletedAt: Date;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const AttendanceSchema = SchemaFactory.createForClass(Attendance);

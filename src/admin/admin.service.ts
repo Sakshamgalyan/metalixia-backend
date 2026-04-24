@@ -3,7 +3,6 @@ import { GetEmployeesDto } from '../dto/admin/GetEmployees.dto';
 import { UserService } from 'src/user/user.service';
 import { AddEmployeeDto } from 'src/dto/admin/AddEmployee.dto';
 import { UpdateEmployeeDto } from 'src/dto/admin/UpdateEmployee.dto';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AdminService {
@@ -20,11 +19,7 @@ export class AdminService {
   }
 
   async addEmployee(addEmployeeDto: AddEmployeeDto) {
-    const hashedPassword = await bcrypt.hash(addEmployeeDto.password, 10);
-    await this.userService.createUser({
-      ...addEmployeeDto,
-      password: hashedPassword,
-    });
+    await this.userService.createUser(addEmployeeDto);
     return { message: 'Employee added successfully', status: 'success' };
   }
 

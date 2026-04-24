@@ -8,10 +8,7 @@ import { AuthGuard } from './guards/auth.guard';
 @UseGuards(AuthGuard)
 export class UploadsController {
   @Get('profiles/:filename')
-  getProfilePicture(
-    @Param('filename') filename: string,
-    @Res() res: Response,
-  ) {
+  getProfilePicture(@Param('filename') filename: string, @Res() res: Response) {
     const filePath = join(process.cwd(), 'uploads', 'profiles', filename);
 
     if (!existsSync(filePath)) {

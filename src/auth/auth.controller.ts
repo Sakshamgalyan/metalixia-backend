@@ -16,17 +16,22 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import type { Response } from 'express';
+import { PaginatedResponse } from 'src/common/utils/pagination.util';
 import { RegisterUserDto } from 'src/dto/auth/registerUser.dto';
 import { LoginUserDto } from 'src/dto/auth/loginUser.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { Public } from './decorators/public.decorator';
+import { User } from 'src/user/entities/user.schema';
 import { ResetPasswordDto } from 'src/dto/auth/reset-password.dto';
 import { SendOtpDto } from 'src/email/dto/send-otp.dto';
+import { ChangePasswordDto } from 'src/dto/auth/change-password.dto';
+import { UpdateProfileDto } from 'src/dto/auth/update-profile.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { UploadedFile, HttpException, HttpStatus } from '@nestjs/common';
+import { FileService } from 'src/common/file.service';
 
 @Controller('auth')
 export class AuthController {
@@ -34,6 +39,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly fileService: FileService,
   ) {}
 
   private setCookies(
@@ -44,7 +50,7 @@ export class AuthController {
 
     const cookieOptions = {
       httpOnly: true,
-      sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
+      sameSite: isProduction ? 'none' : 'lax' as "none" | "lax" | "strict",
       secure: isProduction,
       path: '/',
     };
@@ -200,7 +206,7 @@ export class AuthController {
   @Put('update-profile')
   async updateProfile(
     @Req() req: any,
-    @Body() updateProfileDto: any,
+    @Body() updateProfileDto: UpdateProfileDto,
     @Res() res: Response,
   ) {
     try {
@@ -222,7 +228,7 @@ export class AuthController {
   @Post('change-password')
   async changePassword(
     @Req() req: any,
-    @Body() changePasswordDto: any,
+    @Body() changePasswordDto: ChangePasswordDto,
     @Res() res: Response,
   ) {
     try {
@@ -268,7 +274,7 @@ export class AuthController {
       this.logger.log(
         `Searching employees with query: '${search}', page: ${page}, limit: ${limit}`,
       );
-      const result = await this.authService.searchEmployees(
+      const result: PaginatedResponse<User> = await this.authService.searchEmployees(
         search,
         Number(page),
         Number(limit),
@@ -330,7 +336,7 @@ export class AuthController {
           }
           cb(null, uploadPath);
         },
-        filename: (req: any, file, cb) => {
+        filename: (req, file, cb) => {
           const uniqueId = Date.now() + '-' + Math.round(Math.random() * 1e9);
           const extension = extname(file.originalname);
           cb(null, `temp-${uniqueId}${extension}`);
@@ -374,12 +380,8 @@ export class AuthController {
       // Delete old profile picture if exists
       if (user.profilePicture) {
         const oldFilePath = join(process.cwd(), user.profilePicture);
-        const fsPromises = require('fs/promises');
         try {
-          await fsPromises.unlink(oldFilePath);
-          this.logger.log(
-            `Deleted old profile picture: ${user.profilePicture}`,
-          );
+          await this.fileService.deleteFile(oldFilePath);
         } catch (e) {
           // ignore error if file not found
         }
@@ -394,8 +396,7 @@ export class AuthController {
       const oldPath = file.path;
       const newPath = join(process.cwd(), 'uploads', 'profiles', newFilename);
 
-      const fsPromises = require('fs/promises');
-      await fsPromises.rename(oldPath, newPath);
+      await this.fileService.moveFile(oldPath, newPath);
 
       const filename = `/uploads/profiles/${newFilename}`;
 

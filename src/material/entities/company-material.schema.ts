@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type CompanyMaterialDocument = CompanyMaterial & Document;
 
-@Schema({ timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' } })
+@Schema({ timestamps: true })
 export class CompanyMaterial {
   @Prop({ required: true })
   partName: string;

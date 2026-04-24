@@ -156,3 +156,25 @@ This document provides a summary of all Mongoose schemas defined in the backend 
 | `name` | String | Yes | No | |
 | `subject` | String | Yes | No | |
 | `body` | String | Yes | No | |
+160: 
+161: ---
+162: 
+163: ## 10. Company
+164: **File Path:** `src/company/entities/company.schema.ts`
+165: **Timestamps:** Uses default `createdAt` and `updatedAt`.
+166: 
+167: | Field | Type | Required | Unique | Default/Notes |
+168: | :--- | :--- | :---: | :---: | :--- |
+169: | `companyName` | String | Yes | No | |
+170: | `email` | String | No | No | |
+171: | `phone` | String | No | No | |
+172: | `address` | String | No | No | |
+173: | `contactPerson` | String | No | No | |
+174: | `parts` | Array | No | No | Array of `PartItem` |
+175: 
+176: ### PartItem (Sub-document)
+177: | Field | Type | Required | Unique | Default/Notes |
+178: | :--- | :--- | :---: | :---: | :--- |
+179: | `partName` | String | No | No | |
+180: | `partNumber` | String | No | No | |
+181: | `description` | String | No | No | |

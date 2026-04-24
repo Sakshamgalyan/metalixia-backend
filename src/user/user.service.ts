@@ -6,12 +6,14 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { RegisterUserDto } from 'src/dto/auth/registerUser.dto';
-import { User } from './entities/RegisterUser.entity';
+import { User } from './entities/user.schema';
 import { Model } from 'mongoose';
 import { LoginUserDto } from 'src/dto/auth/loginUser.dto';
 import * as bcrypt from 'bcrypt';
 import { GetEmployeesDto } from 'src/dto/admin/GetEmployees.dto';
 import { UpdateUserDto } from 'src/dto/admin/UpdateUser.dto';
+import { CommonService } from 'src/common/common.service';
+import { buildPaginatedResponse } from 'src/common/utils/pagination.util';
 
 @Injectable()
 export class UserService {
@@ -20,14 +22,22 @@ export class UserService {
   constructor(
     @InjectModel(User.name)
     private userModel: Model<User>,
+    private commonService: CommonService,
   ) {}
 
   async createUser(registerDto: RegisterUserDto) {
     this.logger.log(`Creating user with email: ${registerDto.email}`);
     try {
-      const user = await this.userModel.create(registerDto);
+      const employeeId = await this.commonService.generateEmployeeId();
+      const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+      const user = await this.userModel.create({
+        ...registerDto,
+        employeeId,
+        password: hashedPassword,
+        role: 'user',
+      });
       this.logger.log(
-        `User created successfully: ${user.email} (ID: ${user._id})`,
+        `User created successfully: ${user.email} (ID: ${user._id}, EmployeeID: ${user.employeeId})`,
       );
       return user;
     } catch (error: any) {
@@ -108,14 +118,7 @@ export class UserService {
       };
     });
 
-    return {
-      pagination: {
-        total,
-        pageNo,
-        totalPages: Math.ceil(total / size),
-      },
-      data: data,
-    };
+    return buildPaginatedResponse(data, total, pageNo, size);
   }
 
   async updateUser(updateEmployeeDto: UpdateUserDto) {
@@ -268,14 +271,7 @@ export class UserService {
     this.logger.log(
       `Found ${employees.length} employees for search '${searchTerm}' (total: ${total})`,
     );
-    return {
-      pagination: {
-        total,
-        page,
-        totalPages: Math.ceil(total / limit),
-      },
-      data: employees,
-    };
+    return buildPaginatedResponse(employees, total, page, limit);
   }
 
   async getPublicProfile(employeeId: string) {

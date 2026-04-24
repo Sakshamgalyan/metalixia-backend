@@ -8,6 +8,7 @@ import { isValidObjectId, Model } from 'mongoose';
 import { Company, CompanyDocument } from './entities/company.schema';
 import { CreateCompanyDto } from 'src/dto/company/create-company.dto';
 import { UpdateCompanyDto } from 'src/dto/company/update-company.dto';
+import { buildPaginatedResponse } from 'src/common/utils/pagination.util';
 
 @Injectable()
 export class CompanyService {
@@ -50,12 +51,7 @@ export class CompanyService {
         .exec(),
       this.companyModel.countDocuments(filter).exec(),
     ]);
-    return {
-      data,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    };
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async getCompaniesList(): Promise<{ value: string; label: string }[]> {
