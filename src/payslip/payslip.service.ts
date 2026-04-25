@@ -42,7 +42,7 @@ export class PayslipService {
       `Fetching payslips: page ${page}, limit: ${limit}, employeeId: ${employeeId || 'all'}`,
     );
     const skip = (page - 1) * limit;
-    const query: any = { isDeleted: false };
+    const query: Record<string, unknown> = { isDeleted: false };
 
     if (employeeId) {
       query.employeeId = employeeId;
@@ -51,7 +51,7 @@ export class PayslipService {
     const [payslips, total] = await Promise.all([
       this.payslipModel
         .find(query)
-        .sort({ createdOn: -1 })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .exec(),
@@ -77,7 +77,7 @@ export class PayslipService {
         firstName: employee?.name || 'Unknown',
         month: payslip.month,
         year: payslip.year,
-        uploadedAt: (payslip as any).createdOn,
+        uploadedAt: payslip.createdAt,
         uploadedBy: uploader?.name || 'Unknown',
         fileName: `Payslip_${payslip.month}_${payslip.year}.pdf`,
       };
@@ -89,12 +89,12 @@ export class PayslipService {
 
   async allPayslips(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
-    const query: any = { isDeleted: false };
+    const query: Record<string, unknown> = { isDeleted: false };
 
     const [payslips, total] = await Promise.all([
       this.payslipModel
         .find(query)
-        .sort({ createdOn: -1 })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .exec(),
@@ -120,7 +120,7 @@ export class PayslipService {
         firstName: employee?.name || 'Unknown',
         month: payslip.month,
         year: payslip.year,
-        uploadedAt: (payslip as any).createdOn,
+        uploadedAt: payslip.createdAt,
         uploadedBy: uploader?.name || 'Unknown',
         fileName: `Payslip_${payslip.month}_${payslip.year}.pdf`,
       };

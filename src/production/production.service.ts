@@ -101,9 +101,7 @@ export class ProductionService {
 
     // Count per status
     const statusCounts = await this.productionOrderModel
-      .aggregate([
-        { $group: { _id: '$status', count: { $sum: 1 } } },
-      ])
+      .aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }])
       .exec();
 
     const statusMap: Record<string, number> = {};
@@ -125,9 +123,7 @@ export class ProductionService {
       .countDocuments({ rejectionCount: { $gt: 0 } })
       .exec();
     const rejectionRate =
-      totalOrders > 0
-        ? Math.round((rejectedOrders / totalOrders) * 100)
-        : 0;
+      totalOrders > 0 ? Math.round((rejectedOrders / totalOrders) * 100) : 0;
 
     // Active lines
     const activeLines = await this.productionOrderModel
@@ -286,10 +282,34 @@ export class ProductionService {
     await this.productionOrderModel.deleteMany({}).exec();
 
     const companies = [
-      { name: 'Tata Motors', parts: [{ name: 'Brake Rotor', number: 'TM-BR-001' }, { name: 'Suspension Bolt', number: 'TM-SB-044' }] },
-      { name: 'Mahindra Auto', parts: [{ name: 'Door Handle', number: 'MA-DH-012' }, { name: 'Hood Latch', number: 'MA-HL-007' }] },
-      { name: 'Bajaj Auto', parts: [{ name: 'Chain Sprocket', number: 'BA-CS-033' }, { name: 'Exhaust Clamp', number: 'BA-EC-021' }] },
-      { name: 'Hero MotoCorp', parts: [{ name: 'Wheel Rim', number: 'HM-WR-056' }, { name: 'Kick Lever', number: 'HM-KL-009' }] },
+      {
+        name: 'Tata Motors',
+        parts: [
+          { name: 'Brake Rotor', number: 'TM-BR-001' },
+          { name: 'Suspension Bolt', number: 'TM-SB-044' },
+        ],
+      },
+      {
+        name: 'Mahindra Auto',
+        parts: [
+          { name: 'Door Handle', number: 'MA-DH-012' },
+          { name: 'Hood Latch', number: 'MA-HL-007' },
+        ],
+      },
+      {
+        name: 'Bajaj Auto',
+        parts: [
+          { name: 'Chain Sprocket', number: 'BA-CS-033' },
+          { name: 'Exhaust Clamp', number: 'BA-EC-021' },
+        ],
+      },
+      {
+        name: 'Hero MotoCorp',
+        parts: [
+          { name: 'Wheel Rim', number: 'HM-WR-056' },
+          { name: 'Kick Lever', number: 'HM-KL-009' },
+        ],
+      },
     ];
 
     const statuses = [
@@ -328,7 +348,14 @@ export class ProductionService {
             procStatus = 'in_progress';
             startedAt = new Date(now.getTime() - 1800000);
           }
-        } else if (['quality_check', 'passed', 'ready_for_dispatch', 'dispatched'].includes(status)) {
+        } else if (
+          [
+            'quality_check',
+            'passed',
+            'ready_for_dispatch',
+            'dispatched',
+          ].includes(status)
+        ) {
           procStatus = 'completed';
           startedAt = new Date(now.getTime() - (24 - idx) * 3600000);
           completedAt = new Date(now.getTime() - (23 - idx) * 3600000);
@@ -360,8 +387,11 @@ export class ProductionService {
         status,
         priority,
         rejectionCount: status === 'rejected' ? 1 : Math.random() > 0.8 ? 1 : 0,
-        startedAt: status !== 'queued' ? new Date(createdAt.getTime() + 3600000) : null,
-        completedAt: ['passed', 'ready_for_dispatch', 'dispatched'].includes(status)
+        startedAt:
+          status !== 'queued' ? new Date(createdAt.getTime() + 3600000) : null,
+        completedAt: ['passed', 'ready_for_dispatch', 'dispatched'].includes(
+          status,
+        )
           ? new Date(createdAt.getTime() + 86400000)
           : null,
         createdAt,

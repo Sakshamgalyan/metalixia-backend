@@ -20,11 +20,15 @@ export function buildPaginatedResponse<T>(
 }
 
 export function buildErrorResponse(
-  error: any,
+  error: unknown,
   defaultMessage: string = 'An error occurred',
 ) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : (error as Record<string, unknown>)?.message || defaultMessage;
   return {
     status: 'error',
-    message: error?.message || defaultMessage,
+    message,
   };
 }

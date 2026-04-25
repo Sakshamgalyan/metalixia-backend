@@ -42,7 +42,7 @@ export class AttendanceService {
       `Fetching attendance records: page ${page}, limit: ${limit}, employeeId: ${employeeId || 'all'}`,
     );
     const skip = (page - 1) * limit;
-    const query: any = { isDeleted: false };
+    const query: Record<string, unknown> = { isDeleted: false };
 
     if (employeeId) {
       query.employeeId = employeeId;
@@ -51,7 +51,7 @@ export class AttendanceService {
     const [attendances, total] = await Promise.all([
       this.attendanceModel
         .find(query)
-        .sort({ createdOn: -1 })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .exec(),
@@ -77,7 +77,7 @@ export class AttendanceService {
         firstName: employee?.name || 'Unknown',
         month: attendance.month,
         year: attendance.year,
-        uploadedAt: (attendance as any).createdOn,
+        uploadedAt: attendance.createdAt,
         uploadedBy: uploader?.name || 'Unknown',
         fileName: `Attendance_${attendance.month}_${attendance.year}.pdf`,
       };
