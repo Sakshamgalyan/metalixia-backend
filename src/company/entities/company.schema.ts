@@ -11,6 +11,9 @@ export class PartItem {
 
   @Prop()
   description: string;
+
+  @Prop({ default: false })
+  isActive: boolean;
 }
 export const PartItemSchema = SchemaFactory.createForClass(PartItem);
 
@@ -35,6 +38,9 @@ export class Company {
 
   @Prop({ type: [PartItemSchema], default: [] })
   parts: (PartItem & { _id: Types.ObjectId })[];
+
+  @Prop({ default: false })
+  isActive: boolean;
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

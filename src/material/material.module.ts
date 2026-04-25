@@ -11,18 +11,26 @@ import { AuthModule } from 'src/auth/auth.module';
 import { UserModule } from 'src/user/user.module';
 import { Company, CompanySchema } from 'src/company/entities/company.schema';
 
+import {
+  InventoryItem,
+  InventoryItemSchema,
+} from './entities/inventory-item.schema';
+import { InventoryController } from './inventory.controller';
+import { InventoryService } from './inventory.service';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: RawMaterial.name, schema: RawMaterialSchema },
       { name: CompanyMaterial.name, schema: CompanyMaterialSchema },
       { name: Company.name, schema: CompanySchema },
+      { name: InventoryItem.name, schema: InventoryItemSchema },
     ]),
     AuthModule,
     UserModule,
   ],
-  controllers: [MaterialController],
-  providers: [MaterialService],
-  exports: [MaterialService],
+  controllers: [MaterialController, InventoryController],
+  providers: [MaterialService, InventoryService],
+  exports: [MaterialService, InventoryService],
 })
 export class MaterialModule {}

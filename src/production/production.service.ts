@@ -16,12 +16,18 @@ import {
   AdvanceProcessDto,
 } from 'src/dto/production/update-production-status.dto';
 import { buildPaginatedResponse } from 'src/common/utils/pagination.util';
+import {
+  InventoryItem,
+  InventoryItemDocument,
+} from 'src/material/entities/inventory-item.schema';
 
 @Injectable()
 export class ProductionService {
   constructor(
     @InjectModel(ProductionOrder.name)
     private productionOrderModel: Model<ProductionOrderDocument>,
+    @InjectModel(InventoryItem.name)
+    private inventoryModel: Model<InventoryItemDocument>,
   ) {}
 
   private generateBatchId(): string {
@@ -34,6 +40,33 @@ export class ProductionService {
   async createProductionOrder(
     dto: CreateProductionOrderDto,
   ): Promise<ProductionOrder> {
+    // 1. If inventoryItemId is provided, deduct from inventory
+    if (dto.inventoryItemId) {
+      const inventoryItem = await this.inventoryModel
+        .findById(dto.inventoryItemId)
+        .exec();
+
+      if (!inventoryItem) {
+        throw new NotFoundException('Inventory item not found');
+      }
+
+      if (inventoryItem.quantity < dto.quantity) {
+        throw new BadRequestException(
+          `Insufficient quantity in inventory. Available: ${inventoryItem.quantity}`,
+        );
+      }
+
+      // Deduct quantity
+      inventoryItem.quantity -= dto.quantity;
+
+      // Update status if needed
+      if (inventoryItem.quantity === 0) {
+        inventoryItem.status = 'in_production';
+      }
+
+      await inventoryItem.save();
+    }
+
     const processes = ELECTROPLATING_PROCESSES.map((name) => ({
       name,
       status: 'pending',

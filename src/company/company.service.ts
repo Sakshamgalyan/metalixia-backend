@@ -56,7 +56,7 @@ export class CompanyService {
 
   async getCompaniesList(): Promise<{ value: string; label: string }[]> {
     const companies = await this.companyModel
-      .find()
+      .find({ isActive: true })
       .select('companyName')
       .exec();
     return companies.map((company: any) => ({
@@ -104,10 +104,12 @@ export class CompanyService {
       throw new NotFoundException('Company not found');
     }
 
-    return company.parts.map((part: any) => ({
-      value: part._id.toString(),
-      label: `${part.partNumber} - ${part.partName}`,
-    }));
+    return company.parts
+      .filter((part: any) => part.isActive === true)
+      .map((part: any) => ({
+        value: part._id.toString(),
+        label: `${part.partNumber} - ${part.partName}`,
+      }));
   }
 
   async addPartToCompany(companyId: string, part: any): Promise<Company> {
@@ -250,5 +252,34 @@ export class CompanyService {
       currentPage,
       data: paginatedData,
     };
+  }
+
+  async toggleCompanyStatus(id: string): Promise<Company> {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid company ID');
+    }
+    const company = await this.companyModel.findById(id).exec();
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+    company.isActive = !company.isActive;
+    return company.save();
+  }
+
+  async togglePartStatus(partId: string): Promise<Company> {
+    if (!isValidObjectId(partId)) {
+      throw new BadRequestException('Invalid part ID');
+    }
+    const company = await this.companyModel
+      .findOne({ 'parts._id': partId })
+      .exec();
+    if (!company) {
+      throw new NotFoundException('Part not found');
+    }
+    const part = company.parts.find((p: any) => p._id.toString() === partId);
+    if (part) {
+      part.isActive = !part.isActive;
+    }
+    return company.save();
   }
 }

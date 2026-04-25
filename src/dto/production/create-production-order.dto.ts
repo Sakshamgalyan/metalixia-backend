@@ -3,6 +3,10 @@ import { IsString, IsNumber, IsOptional, IsIn } from 'class-validator';
 export class CreateProductionOrderDto {
   @IsOptional()
   @IsString()
+  inventoryItemId?: string;
+
+  @IsOptional()
+  @IsString()
   companyMaterialId?: string;
 
   @IsOptional()

@@ -8,6 +8,7 @@ import {
   Delete,
   Param,
   Put,
+  Patch,
 } from '@nestjs/common';
 import { CompanyService } from './company.service';
 import { CreateCompanyDto } from 'src/dto/company/create-company.dto';
@@ -131,6 +132,26 @@ export class CompanyController {
     const company = await this.companyService.updatePart(partId, body);
     return {
       message: 'Part updated successfully',
+      data: company,
+    };
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.MANAGER)
+  @Patch(':id/toggle-status')
+  async toggleCompanyStatus(@Param('id') id: string) {
+    const company = await this.companyService.toggleCompanyStatus(id);
+    return {
+      message: `Company ${company.isActive ? 'activated' : 'deactivated'} successfully`,
+      isActive: company.isActive,
+    };
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.MANAGER)
+  @Patch('part/:partId/toggle-status')
+  async togglePartStatus(@Param('partId') partId: string) {
+    const company = await this.companyService.togglePartStatus(partId);
+    return {
+      message: `Part updated successfully`,
       data: company,
     };
   }
