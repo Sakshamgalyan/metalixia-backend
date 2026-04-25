@@ -18,7 +18,13 @@ import { CreateRawMaterialDto } from 'src/dto/material/create-raw-material.dto';
 import { CreateCompanyMaterialDto } from 'src/dto/material/create-company-material.dto';
 import { UpdateCompanyMaterialReceiverDto } from 'src/dto/material/update-company-material.dto';
 import { UpdateCompanyMaterialFullDto } from 'src/dto/material/update-company-material-full.dto';
+import { UpdateRawMaterialDto } from 'src/dto/material/update-raw-material.dto';
+import { ReceiveRawMaterialDto } from 'src/dto/material/receive-raw-material.dto';
 import { Company, CompanyDocument } from 'src/company/entities/company.schema';
+import {
+  InventoryItem,
+  InventoryItemDocument,
+} from './entities/inventory-item.schema';
 
 @Injectable()
 export class MaterialService {
@@ -29,6 +35,8 @@ export class MaterialService {
     private companyMaterialModel: Model<CompanyMaterialDocument>,
     @InjectModel(Company.name)
     private readonly companyModel: Model<CompanyDocument>,
+    @InjectModel(InventoryItem.name)
+    private inventoryModel: Model<InventoryItemDocument>,
   ) {}
 
   async createRawMaterial(
@@ -70,6 +78,84 @@ export class MaterialService {
     if (!deletedMaterial) {
       throw new NotFoundException(`Raw Material with ID ${id} not found`);
     }
+  }
+
+  async updateRawMaterial(
+    id: string,
+    updateDto: UpdateRawMaterialDto,
+  ): Promise<RawMaterial> {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid ID');
+    }
+    const updateFields: Record<string, unknown> = {};
+
+    if (updateDto.materialName !== undefined)
+      updateFields.materialName = updateDto.materialName;
+    if (updateDto.quantity !== undefined)
+      updateFields.quantity = updateDto.quantity;
+    if (updateDto.unit !== undefined) updateFields.unit = updateDto.unit;
+    if (updateDto.price !== undefined) updateFields.price = updateDto.price;
+    if (updateDto.source !== undefined) updateFields.source = updateDto.source;
+    if (updateDto.inventoryLocation !== undefined)
+      updateFields.inventoryLocation = updateDto.inventoryLocation;
+    if (updateDto.invoiceNumber !== undefined)
+      updateFields.invoiceNumber = updateDto.invoiceNumber;
+    if (updateDto.expectedOn !== undefined)
+      updateFields.expectedOn = updateDto.expectedOn;
+
+    const updatedMaterial = await this.rawMaterialModel
+      .findByIdAndUpdate(id, { $set: updateFields }, { new: true })
+      .exec();
+
+    if (!updatedMaterial) {
+      throw new NotFoundException(`Raw Material with ID ${id} not found`);
+    }
+
+    return updatedMaterial;
+  }
+
+  async receiveRawMaterial(
+    id: string,
+    dto: ReceiveRawMaterialDto,
+  ): Promise<RawMaterial> {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid ID');
+    }
+    const updatedMaterial = await this.rawMaterialModel
+      .findByIdAndUpdate(
+        id,
+        {
+          $set: {
+            isReceived: true,
+            receivedAt: new Date(),
+            status: 'received',
+            receivedBy: dto.receivedBy,
+            receivedById: dto.receivedById,
+          },
+        },
+        { new: true },
+      )
+      .exec();
+
+    if (!updatedMaterial) {
+      throw new NotFoundException(`Raw Material with ID ${id} not found`);
+    }
+
+    await new this.inventoryModel({
+      sourceType: 'raw',
+      sourceId: updatedMaterial._id,
+      materialName: updatedMaterial.materialName,
+      quantity: updatedMaterial.quantity,
+      originalQuantity: updatedMaterial.quantity,
+      unit: updatedMaterial.unit,
+      inventoryLocation: updatedMaterial.inventoryLocation,
+      receivedAt: updatedMaterial.receivedAt,
+      receivedBy: updatedMaterial.receivedBy,
+      receivedById: updatedMaterial.receivedById,
+      status: 'received',
+    }).save();
+
+    return updatedMaterial;
   }
 
   async createCompanyMaterial(
@@ -185,6 +271,7 @@ export class MaterialService {
             receivedBy: updateDto.receivedBy,
             receivedById: updateDto.receivedById,
             status: 'received',
+            isReceived: true,
             receivedOn: new Date(),
           },
         },
@@ -195,6 +282,24 @@ export class MaterialService {
     if (!updatedMaterial) {
       throw new NotFoundException(`Company Material with ID ${id} not found`);
     }
+
+    // Create Inventory Item
+    await new this.inventoryModel({
+      sourceType: 'company',
+      sourceId: updatedMaterial._id,
+      materialName: `${updatedMaterial.partNumber} - ${updatedMaterial.partName}`,
+      partName: updatedMaterial.partName,
+      partNumber: updatedMaterial.partNumber,
+      companyName: updatedMaterial.companyName,
+      quantity: updatedMaterial.quantity,
+      originalQuantity: updatedMaterial.quantity,
+      unit: updatedMaterial.unit,
+      inventoryLocation: updatedMaterial.inventoryLocation,
+      receivedAt: updatedMaterial.receivedOn,
+      receivedBy: updatedMaterial.receivedBy,
+      receivedById: updatedMaterial.receivedById,
+      status: 'received',
+    }).save();
 
     return updatedMaterial;
   }
@@ -333,243 +438,7 @@ export class MaterialService {
     }
   }
 
-  // ── Inventory Methods ─────────────────────────────────────────
-
-  async getInventoryItems(
-    page: number,
-    limit: number,
-    search?: string,
-    type?: string,
-    status?: string,
-  ) {
-    const skip = (page - 1) * limit;
-
-    // Gather company materials
-    const companyFilter: QueryFilter<CompanyMaterialDocument> = {};
-    if (search) {
-      companyFilter.$or = [
-        { companyName: { $regex: search, $options: 'i' } },
-        { partName: { $regex: search, $options: 'i' } },
-        { partNumber: { $regex: search, $options: 'i' } },
-      ];
-    }
-    if (status && status !== 'all') {
-      companyFilter.status = status;
-    }
-
-    // Gather raw materials
-    const rawFilter: QueryFilter<RawMaterialDocument> = {};
-    if (search) {
-      rawFilter.$or = [
-        { materialName: { $regex: search, $options: 'i' } },
-        { source: { $regex: search, $options: 'i' } },
-      ];
-    }
-    if (status && status !== 'all') {
-      rawFilter.status = status;
-    }
-
-    if (type === 'company') {
-      const [data, total] = await Promise.all([
-        this.companyMaterialModel
-          .find(companyFilter)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .lean()
-          .exec(),
-        this.companyMaterialModel.countDocuments(companyFilter).exec(),
-      ]);
-
-      const mapped = data.map((item: CompanyMaterialDocument) => ({
-        _id: item._id,
-        name: `${item.partNumber} - ${item.partName}`,
-        partNumber: item.partNumber,
-        partName: item.partName,
-        type: 'company',
-        companyName: item.companyName,
-        quantity: item.quantity,
-        unit: item.unit,
-        location: item.inventoryLocation,
-        status: item.status,
-        receivedOn: item.receivedOn || item.createdAt,
-        createdAt: item.createdAt,
-      }));
-
-      return buildPaginatedResponse(mapped, total, page, limit);
-    }
-
-    if (type === 'raw') {
-      const [data, total] = await Promise.all([
-        this.rawMaterialModel
-          .find(rawFilter)
-          .sort({ receivedAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .lean()
-          .exec(),
-        this.rawMaterialModel.countDocuments(rawFilter).exec(),
-      ]);
-
-      const mapped = data.map((item: RawMaterialDocument) => ({
-        _id: item._id,
-        name: item.materialName,
-        partName: item.materialName, // For raw material, name is the "part"
-        partNumber: 'RAW',
-        type: 'raw',
-        companyName: item.source,
-        quantity: item.quantity,
-        unit: item.unit,
-        location: item.inventoryLocation,
-        status: item.status,
-        price: item.price,
-        receivedOn: item.receivedAt,
-        createdAt: item.receivedAt,
-      }));
-
-      return buildPaginatedResponse(mapped, total, page, limit);
-    }
-
-    // Combined: fetch enough docs from both to support sorting/slicing
-    const [companyData, companyTotal, rawData, rawTotal] = await Promise.all([
-      this.companyMaterialModel
-        .find(companyFilter)
-        .sort({ createdAt: -1 })
-        .limit(skip + limit)
-        .lean()
-        .exec(),
-      this.companyMaterialModel.countDocuments(companyFilter).exec(),
-      this.rawMaterialModel
-        .find(rawFilter)
-        .sort({ receivedAt: -1 })
-        .limit(skip + limit)
-        .lean()
-        .exec(),
-      this.rawMaterialModel.countDocuments(rawFilter).exec(),
-    ]);
-
-    const combined = [
-      ...companyData.map((item: CompanyMaterialDocument) => ({
-        _id: item._id,
-        name: `${item.partNumber} - ${item.partName}`,
-        partNumber: item.partNumber,
-        partName: item.partName,
-        type: 'company',
-        companyName: item.companyName,
-        quantity: item.quantity,
-        unit: item.unit,
-        location: item.inventoryLocation,
-        status: item.status,
-        receivedOn: item.receivedOn || item.createdAt,
-        createdAt: item.createdAt,
-      })),
-      ...(rawData as RawMaterialDocument[]).map((item) => ({
-        _id: item._id,
-        name: item.materialName,
-        partName: item.materialName,
-        partNumber: 'RAW',
-        type: 'raw',
-        companyName: item.source,
-        quantity: item.quantity,
-        unit: item.unit,
-        location: item.inventoryLocation,
-        status: item.status,
-        price: item.price,
-        receivedOn: item.receivedAt,
-        createdAt: item.receivedAt,
-      })),
-    ].sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-
-    const paginated = combined.slice(skip, skip + limit);
-    const total = companyTotal + rawTotal;
-    return buildPaginatedResponse(paginated, total, page, limit);
-  }
-
-  async getInventoryStats() {
-    const companyStatusAgg = await this.companyMaterialModel
-      .aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }])
-      .exec();
-
-    const rawStatusAgg = await this.rawMaterialModel
-      .aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }])
-      .exec();
-
-    const statusMap: Record<string, number> = {};
-    [...companyStatusAgg, ...rawStatusAgg].forEach(
-      (s: { _id: string; count: number }) => {
-        const key = s._id || 'received';
-        statusMap[key] = (statusMap[key] || 0) + s.count;
-      },
-    );
-
-    const totalCompany = await this.companyMaterialModel
-      .countDocuments()
-      .exec();
-    const totalRaw = await this.rawMaterialModel.countDocuments().exec();
-
-    const { start, now } = this.getLast7DaysRange();
-
-    const [companyDaily, rawDaily] = await Promise.all([
-      this.companyMaterialModel
-        .aggregate([
-          { $match: { createdAt: { $gte: start, $lte: now } } },
-          {
-            $group: {
-              _id: {
-                $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-              },
-              count: { $sum: 1 },
-            },
-          },
-        ])
-        .exec(),
-      this.rawMaterialModel
-        .aggregate([
-          { $match: { receivedAt: { $gte: start, $lte: now } } },
-          {
-            $group: {
-              _id: {
-                $dateToString: { format: '%Y-%m-%d', date: '$receivedAt' },
-              },
-              count: { $sum: 1 },
-            },
-          },
-        ])
-        .exec(),
-    ]);
-
-    const companyMap = new Map(companyDaily.map((i) => [i._id, i.count]));
-    const rawMap = new Map(rawDaily.map((i) => [i._id, i.count]));
-
-    const dailyCounts: {
-      date: string;
-      company: number;
-      raw: number;
-    }[] = [];
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-
-      dailyCounts.push({
-        date: dateStr,
-        company: companyMap.get(dateStr) || 0,
-        raw: rawMap.get(dateStr) || 0,
-      });
-    }
-
-    return {
-      totalItems: totalCompany + totalRaw,
-      totalCompany,
-      totalRaw,
-      statusMap,
-      dailyCounts,
-    };
-  }
+  // ── Inventory Methods moved to InventoryService ───────────────────────────────
 
   async updateMaterialStatus(
     type: string,
@@ -635,6 +504,83 @@ export class MaterialService {
     ]);
 
     return buildPaginatedResponse(data, total, page, limit);
+  }
+
+  async getRawMaterialsForExport(filters: {
+    search?: string;
+    materialName?: string;
+    source?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const filter: any = {};
+    if (filters.search) {
+      filter.$or = [
+        { materialName: { $regex: filters.search, $options: 'i' } },
+        { source: { $regex: filters.search, $options: 'i' } },
+        { invoiceNumber: { $regex: filters.search, $options: 'i' } },
+      ];
+    }
+    if (filters.materialName) filter.materialName = filters.materialName;
+    if (filters.source) filter.source = filters.source;
+
+    if (filters.startDate || filters.endDate) {
+      filter.createdAt = {};
+      if (filters.startDate)
+        filter.createdAt.$gte = new Date(filters.startDate);
+      if (filters.endDate) filter.createdAt.$lte = new Date(filters.endDate);
+    }
+
+    return this.rawMaterialModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+  }
+
+  async getCompanyMaterialsForExport(filters: {
+    search?: string;
+    companyName?: string;
+    partName?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const filter: any = {};
+    if (filters.search) {
+      filter.$or = [
+        { companyName: { $regex: filters.search, $options: 'i' } },
+        { partName: { $regex: filters.search, $options: 'i' } },
+        { partNumber: { $regex: filters.search, $options: 'i' } },
+      ];
+    }
+    if (filters.companyName) filter.companyName = filters.companyName;
+    if (filters.partName) filter.partName = filters.partName;
+
+    if (filters.startDate || filters.endDate) {
+      filter.createdAt = {};
+      if (filters.startDate)
+        filter.createdAt.$gte = new Date(filters.startDate);
+      if (filters.endDate) filter.createdAt.$lte = new Date(filters.endDate);
+    }
+
+    return this.companyMaterialModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+  }
+
+  async getRawUniqueList() {
+    const materialNames = await this.rawMaterialModel.distinct('materialName');
+    const sources = await this.rawMaterialModel.distinct('source');
+    return { materialNames, sources };
+  }
+
+  async getCompanyUniqueList() {
+    const companyNames =
+      await this.companyMaterialModel.distinct('companyName');
+    const partNames = await this.companyMaterialModel.distinct('partName');
+    return { companyNames, partNames };
   }
 
   async getDispatchStats() {

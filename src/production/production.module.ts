@@ -9,10 +9,16 @@ import {
 import { AuthModule } from 'src/auth/auth.module';
 import { UserModule } from 'src/user/user.module';
 
+import {
+  InventoryItem,
+  InventoryItemSchema,
+} from 'src/material/entities/inventory-item.schema';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: ProductionOrder.name, schema: ProductionOrderSchema },
+      { name: InventoryItem.name, schema: InventoryItemSchema },
     ]),
     AuthModule,
     UserModule,

@@ -44,7 +44,10 @@ export class CompanyMaterial {
   @Prop({ type: Date, default: null })
   receivedOn: Date;
 
-  @Prop({ default: 'received' })
+  @Prop({ default: false })
+  isReceived: boolean;
+
+  @Prop({ default: 'pending' })
   status: string;
 
   @Prop()

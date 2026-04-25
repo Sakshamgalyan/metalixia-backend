@@ -38,7 +38,10 @@ export class RawMaterial {
   @Prop()
   receivedAt: Date;
 
-  @Prop({ default: 'received' })
+  @Prop({ default: false })
+  isReceived: boolean;
+
+  @Prop({ default: 'pending' })
   status: string;
 
   @Prop()
