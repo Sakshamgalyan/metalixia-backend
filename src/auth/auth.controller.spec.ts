@@ -83,7 +83,7 @@ describe('AuthController', () => {
 
   describe('logout', () => {
     it('should logout user and clear cookies', async () => {
-      const req = { user: { sub: 'someId' } };
+      const req = { user: { sub: 'someId' } } as any;
       await controller.logout(req, mockResponse);
 
       expect(mockAuthService.logout).toHaveBeenCalledWith('someId');
@@ -97,7 +97,7 @@ describe('AuthController', () => {
       const req = { cookies: { refresh_token: 'valid_refresh' } };
       mockAuthService.refreshTokens.mockResolvedValue(mockTokens);
 
-      await controller.refresh(req, mockResponse);
+      await controller.refresh(req as any, mockResponse);
 
       expect(mockAuthService.refreshTokens).toHaveBeenCalledWith(
         'valid_refresh',
@@ -108,16 +108,18 @@ describe('AuthController', () => {
 
     it('should throw UnauthorizedException if no refresh token provided', async () => {
       const req = { cookies: {} };
-      await expect(controller.refresh(req, mockResponse)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        controller.refresh(req as any, mockResponse),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should clear cookies and throw error if refresh fails', async () => {
       const req = { cookies: { refresh_token: 'invalid_token' } };
       mockAuthService.refreshTokens.mockRejectedValue(new Error());
 
-      await expect(controller.refresh(req, mockResponse)).rejects.toThrow();
+      await expect(
+        controller.refresh(req as any, mockResponse),
+      ).rejects.toThrow();
       expect(mockResponse.clearCookie).toHaveBeenCalledTimes(2);
     });
   });
@@ -125,7 +127,8 @@ describe('AuthController', () => {
   describe('profile', () => {
     it('should return user profile', async () => {
       const req = { user: { sub: 'someId', role: 'user' } };
-      await controller.profile(req, mockResponse);
+      await controller.profile(req as any, mockResponse);
+
       expect(mockResponse.send).toHaveBeenCalledWith({
         id: 'someId',
         role: 'user',

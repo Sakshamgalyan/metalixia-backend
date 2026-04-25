@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -24,7 +21,12 @@ export class QualityService {
     private productionOrderModel: Model<ProductionOrderDocument>,
   ) {}
 
-  async getQualityChecks(page: number, limit: number, search?: string, result?: string) {
+  async getQualityChecks(
+    page: number,
+    limit: number,
+    search?: string,
+    result?: string,
+  ) {
     const skip = (page - 1) * limit;
     const filter: Record<string, any> = {};
 
@@ -75,8 +77,10 @@ export class QualityService {
       ])
       .exec();
 
-    const passedToday = todayResults.find((r: any) => r._id === 'passed')?.count || 0;
-    const failedToday = todayResults.find((r: any) => r._id === 'failed')?.count || 0;
+    const passedToday =
+      todayResults.find((r: any) => r._id === 'passed')?.count || 0;
+    const failedToday =
+      todayResults.find((r: any) => r._id === 'failed')?.count || 0;
 
     // Overall pass rate
     const totalChecks = await this.qualityCheckModel
@@ -85,7 +89,8 @@ export class QualityService {
     const totalPassed = await this.qualityCheckModel
       .countDocuments({ result: 'passed' })
       .exec();
-    const passRate = totalChecks > 0 ? Math.round((totalPassed / totalChecks) * 100) : 0;
+    const passRate =
+      totalChecks > 0 ? Math.round((totalPassed / totalChecks) * 100) : 0;
 
     // Daily trend
     const dailyAgg = await this.qualityCheckModel
@@ -94,7 +99,9 @@ export class QualityService {
         {
           $group: {
             _id: {
-              date: { $dateToString: { format: '%Y-%m-%d', date: '$inspectedAt' } },
+              date: {
+                $dateToString: { format: '%Y-%m-%d', date: '$inspectedAt' },
+              },
               result: '$result',
             },
             count: { $sum: 1 },
@@ -242,9 +249,24 @@ export class QualityService {
         inspectedById: 'qi-001',
         result: 'passed',
         parameters: [
-          { name: 'Coating Thickness', expected: '8-12 µm', actual: '10 µm', passed: true },
-          { name: 'Adhesion Test', expected: 'Grade 0-1', actual: 'Grade 0', passed: true },
-          { name: 'Salt Spray Test', expected: '72+ hrs', actual: '96 hrs', passed: true },
+          {
+            name: 'Coating Thickness',
+            expected: '8-12 µm',
+            actual: '10 µm',
+            passed: true,
+          },
+          {
+            name: 'Adhesion Test',
+            expected: 'Grade 0-1',
+            actual: 'Grade 0',
+            passed: true,
+          },
+          {
+            name: 'Salt Spray Test',
+            expected: '72+ hrs',
+            actual: '96 hrs',
+            passed: true,
+          },
         ],
         inspectedAt: new Date(now.getTime() - Math.random() * 604800000),
         createdAt: new Date(now.getTime() - Math.random() * 604800000),
@@ -269,8 +291,18 @@ export class QualityService {
         defectDescription: `Failed due to ${defect.toLowerCase()} issues`,
         rejectionReason: `${defect} not within acceptable limits`,
         parameters: [
-          { name: 'Coating Thickness', expected: '8-12 µm', actual: '5 µm', passed: false },
-          { name: 'Adhesion Test', expected: 'Grade 0-1', actual: 'Grade 3', passed: false },
+          {
+            name: 'Coating Thickness',
+            expected: '8-12 µm',
+            actual: '5 µm',
+            passed: false,
+          },
+          {
+            name: 'Adhesion Test',
+            expected: 'Grade 0-1',
+            actual: 'Grade 3',
+            passed: false,
+          },
         ],
         inspectedAt: new Date(now.getTime() - Math.random() * 604800000),
         createdAt: new Date(now.getTime() - Math.random() * 604800000),

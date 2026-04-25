@@ -14,6 +14,8 @@ import { GetEmployeesDto } from 'src/dto/admin/GetEmployees.dto';
 import { UpdateUserDto } from 'src/dto/admin/UpdateUser.dto';
 import { CommonService } from 'src/common/common.service';
 import { buildPaginatedResponse } from 'src/common/utils/pagination.util';
+import { Role } from 'src/dto/Role/Role.dto';
+import { UpdateProfileDto } from 'src/dto/user/update-profile.dto';
 
 @Injectable()
 export class UserService {
@@ -34,21 +36,29 @@ export class UserService {
         ...registerDto,
         employeeId,
         password: hashedPassword,
-        role: 'user',
+        role: Role.USER,
       });
       this.logger.log(
         `User created successfully: ${user.email} (ID: ${user._id}, EmployeeID: ${user.employeeId})`,
       );
       return user;
-    } catch (error: any) {
-      if (error.code === 11000) {
-        const key = Object.keys(error.keyValue)[0];
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 11000
+      ) {
+        const key = Object.keys((error as any).keyValue)[0];
         this.logger.warn(
           `Duplicate key error: ${key} already exists for ${registerDto.email}`,
         );
         throw new ConflictException(`${key} already exists`);
       }
-      this.logger.error(`Failed to create user: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -89,7 +99,7 @@ export class UserService {
   async findByEmployee(getEmployeesDto: GetEmployeesDto) {
     const { page, limit, post, role } = getEmployeesDto;
 
-    const query: any = {};
+    const query: Record<string, unknown> = {};
     if (role && role.length > 0) {
       query.role = { $in: role };
     }
@@ -97,6 +107,7 @@ export class UserService {
       query.post = { $in: post };
     }
     const pageNo = page || 1;
+
     const size = limit || 10;
     const skip = (pageNo - 1) * size;
     const users = await this.userModel
@@ -176,9 +187,9 @@ export class UserService {
     );
   }
 
-  async updateProfile(userId: string, updateProfileDto: any) {
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
     this.logger.log(`Updating profile for user: ${userId}`);
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
 
     if (updateProfileDto.name) updateData.name = updateProfileDto.name;
     if (updateProfileDto.email) updateData.email = updateProfileDto.email;
@@ -190,11 +201,10 @@ export class UserService {
     if (updateProfileDto.message !== undefined)
       updateData.message = updateProfileDto.message;
 
-    updateData.updatedOn = new Date();
-
     const result = await this.userModel.findByIdAndUpdate(userId, updateData, {
       new: true,
     });
+
     this.logger.log(`Profile updated successfully for user: ${userId}`);
     return result;
   }
@@ -225,9 +235,10 @@ export class UserService {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     const result = await this.userModel.findByIdAndUpdate(
       userId,
-      { password: hashedPassword, updatedOn: new Date() },
+      { password: hashedPassword },
       { new: true },
     );
+
     this.logger.log(`Password changed successfully for user: ${userId}`);
     return result;
   }
@@ -235,7 +246,7 @@ export class UserService {
   async updateProfilePicture(userId: string, filename: string) {
     return this.userModel.findByIdAndUpdate(
       userId,
-      { profilePicture: filename, updatedOn: new Date() },
+      { profilePicture: filename },
       { new: true },
     );
   }
@@ -248,7 +259,7 @@ export class UserService {
     this.logger.debug(
       `Searching employees: term='${searchTerm}', page=${page}, limit=${limit}`,
     );
-    const query: any = {};
+    const query: Record<string, unknown> = {};
 
     if (searchTerm) {
       query.$or = [

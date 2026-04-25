@@ -15,6 +15,7 @@ import { ResetPasswordDto } from '../dto/auth/reset-password.dto';
 import { UpdateProfileDto } from 'src/dto/auth/update-profile.dto';
 import { PaginatedResponse } from 'src/common/utils/pagination.util';
 import { User } from 'src/user/entities/user.schema';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
@@ -50,13 +51,15 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string) {
-    let payload : any;
+    let payload: JwtPayload;
     try {
       payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
     } catch (error) {
-      this.logger.warn(`Refresh token verification failed: ${error.message}`);
+      this.logger.warn(
+        `Refresh token verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       throw new ForbiddenException('Access Denied');
     }
 

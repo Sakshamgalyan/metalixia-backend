@@ -1,11 +1,11 @@
 import {
-  BadRequestException,
   Injectable,
+  BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
 import { buildPaginatedResponse } from 'src/common/utils/pagination.util';
 import { InjectModel } from '@nestjs/mongoose';
-import { isValidObjectId, Model } from 'mongoose';
+import { isValidObjectId, Model, QueryFilter } from 'mongoose';
 import {
   RawMaterial,
   RawMaterialDocument,
@@ -40,7 +40,7 @@ export class MaterialService {
 
   async getRawMaterials(page: number, limit: number, search?: string) {
     const skip = (page - 1) * limit;
-    const filter: any = {};
+    const filter: QueryFilter<RawMaterialDocument> = {};
     if (search) {
       filter.$or = [
         { materialName: { $regex: search, $options: 'i' } },
@@ -61,6 +61,9 @@ export class MaterialService {
   }
 
   async deleteRawMaterial(id: string): Promise<void> {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid ID');
+    }
     const deletedMaterial = await this.rawMaterialModel
       .findByIdAndDelete(id)
       .exec();
@@ -91,7 +94,7 @@ export class MaterialService {
     }
 
     // 3. Find part inside company
-    const part = company.parts.find((p: any) => p._id.toString() === partId);
+    const part = company.parts.find((p) => p._id.toString() === partId);
 
     if (!part) {
       throw new NotFoundException('Part not found in this company');
@@ -110,7 +113,7 @@ export class MaterialService {
 
   async getCompanyMaterials(page: number, limit: number, search?: string) {
     const skip = (page - 1) * limit;
-    const filter: any = {};
+    const filter: QueryFilter<CompanyMaterialDocument> = {};
     if (search) {
       filter.$or = [
         { materialName: { $regex: search, $options: 'i' } },
@@ -135,7 +138,11 @@ export class MaterialService {
     id: string,
     updateDto: UpdateCompanyMaterialFullDto,
   ): Promise<CompanyMaterial> {
-    const updateFields: Record<string, any> = {};
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid ID');
+    }
+    const updateFields: Record<string, unknown> = {};
+
     if (updateDto.quantity !== undefined)
       updateFields.quantity = updateDto.quantity;
     if (updateDto.unit !== undefined) updateFields.unit = updateDto.unit;
@@ -167,6 +174,9 @@ export class MaterialService {
     id: string,
     updateDto: UpdateCompanyMaterialReceiverDto,
   ): Promise<CompanyMaterial> {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid ID');
+    }
     const updatedMaterial = await this.companyMaterialModel
       .findByIdAndUpdate(
         id,
@@ -174,6 +184,8 @@ export class MaterialService {
           $set: {
             receivedBy: updateDto.receivedBy,
             receivedById: updateDto.receivedById,
+            status: 'received',
+            receivedOn: new Date(),
           },
         },
         { new: true },
@@ -188,44 +200,39 @@ export class MaterialService {
   }
 
   async getRawMaterialStats() {
-    const now = new Date();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(now.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
+    const { start, now } = this.getLast7DaysRange();
 
-    // Aggregate daily counts and quantity*price for the last 7 days
     const dailyAgg = await this.rawMaterialModel
       .aggregate([
         {
           $match: {
-            receivedAt: { $gte: sevenDaysAgo, $lte: now },
+            receivedAt: { $gte: start, $lte: now },
           },
         },
         {
           $group: {
-            _id: {
-              $dateToString: { format: '%Y-%m-%d', date: '$receivedAt' },
-            },
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$receivedAt' } },
             count: { $sum: 1 },
-            totalQuantity: { $sum: '$quantity' },
             totalValue: { $sum: { $multiply: ['$quantity', '$price'] } },
           },
         },
-        { $sort: { _id: 1 } },
       ])
       .exec();
 
-    // Fill in missing days
+    const aggMap = new Map(dailyAgg.map((i) => [i._id, i]));
+
     const dailyCounts: {
       date: string;
       count: number;
       totalValue: number;
     }[] = [];
+
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(now.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
-      const found = dailyAgg.find((item: any) => item._id === dateStr);
+      const found = aggMap.get(dateStr);
+
       dailyCounts.push({
         date: dateStr,
         count: found ? found.count : 0,
@@ -239,22 +246,11 @@ export class MaterialService {
       0,
     );
 
-    // Count unique sources in last 7 days
     const activeSourcesAgg = await this.rawMaterialModel
       .aggregate([
-        {
-          $match: {
-            receivedAt: { $gte: sevenDaysAgo, $lte: now },
-          },
-        },
-        {
-          $group: {
-            _id: '$source',
-          },
-        },
-        {
-          $count: 'count',
-        },
+        { $match: { receivedAt: { $gte: start, $lte: now } } },
+        { $group: { _id: '$source' } },
+        { $count: 'count' },
       ])
       .exec();
 
@@ -270,43 +266,39 @@ export class MaterialService {
   }
 
   async getCompanyMaterialStats() {
-    const now = new Date();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(now.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
+    const { start, now } = this.getLast7DaysRange();
 
-    // Aggregate daily counts for the last 7 days
     const dailyAgg = await this.companyMaterialModel
       .aggregate([
         {
           $match: {
-            createdAt: { $gte: sevenDaysAgo, $lte: now },
+            createdAt: { $gte: start, $lte: now },
           },
         },
         {
           $group: {
-            _id: {
-              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-            },
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
             count: { $sum: 1 },
             totalQuantity: { $sum: '$quantity' },
           },
         },
-        { $sort: { _id: 1 } },
       ])
       .exec();
 
-    // Fill in missing days with zero counts
+    const aggMap = new Map(dailyAgg.map((i) => [i._id, i]));
+
     const dailyCounts: {
       date: string;
       count: number;
       totalQuantity: number;
     }[] = [];
+
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(now.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
-      const found = dailyAgg.find((item: any) => item._id === dateStr);
+      const found = aggMap.get(dateStr);
+
       dailyCounts.push({
         date: dateStr,
         count: found ? found.count : 0,
@@ -320,33 +312,15 @@ export class MaterialService {
       0,
     );
 
-    // Count unique companies in last 7 days
-    const activeCompaniesAgg = await this.companyMaterialModel
-      .aggregate([
-        {
-          $match: {
-            createdAt: { $gte: sevenDaysAgo, $lte: now },
-          },
-        },
-        {
-          $group: {
-            _id: '$companyName',
-          },
-        },
-        {
-          $count: 'count',
-        },
-      ])
+    const readyCount = await this.companyMaterialModel
+      .countDocuments({ status: 'ready_for_dispatch' })
       .exec();
-
-    const activeCompanies =
-      activeCompaniesAgg.length > 0 ? activeCompaniesAgg[0].count : 0;
 
     return {
       dailyCounts,
       totalThisWeek,
       totalQuantityThisWeek,
-      activeCompanies,
+      readyCount,
     };
   }
 
@@ -371,7 +345,7 @@ export class MaterialService {
     const skip = (page - 1) * limit;
 
     // Gather company materials
-    const companyFilter: Record<string, any> = {};
+    const companyFilter: QueryFilter<CompanyMaterialDocument> = {};
     if (search) {
       companyFilter.$or = [
         { companyName: { $regex: search, $options: 'i' } },
@@ -384,7 +358,7 @@ export class MaterialService {
     }
 
     // Gather raw materials
-    const rawFilter: Record<string, any> = {};
+    const rawFilter: QueryFilter<RawMaterialDocument> = {};
     if (search) {
       rawFilter.$or = [
         { materialName: { $regex: search, $options: 'i' } },
@@ -402,11 +376,12 @@ export class MaterialService {
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
+          .lean()
           .exec(),
         this.companyMaterialModel.countDocuments(companyFilter).exec(),
       ]);
 
-      const mapped = data.map((item: any) => ({
+      const mapped = data.map((item: CompanyMaterialDocument) => ({
         _id: item._id,
         name: `${item.partNumber} - ${item.partName}`,
         partNumber: item.partNumber,
@@ -416,7 +391,7 @@ export class MaterialService {
         quantity: item.quantity,
         unit: item.unit,
         location: item.inventoryLocation,
-        status: item.status || 'received',
+        status: item.status,
         receivedOn: item.receivedOn || item.createdAt,
         createdAt: item.createdAt,
       }));
@@ -431,11 +406,12 @@ export class MaterialService {
           .sort({ receivedAt: -1 })
           .skip(skip)
           .limit(limit)
+          .lean()
           .exec(),
         this.rawMaterialModel.countDocuments(rawFilter).exec(),
       ]);
 
-      const mapped = data.map((item: any) => ({
+      const mapped = data.map((item: RawMaterialDocument) => ({
         _id: item._id,
         name: item.materialName,
         partName: item.materialName, // For raw material, name is the "part"
@@ -445,7 +421,7 @@ export class MaterialService {
         quantity: item.quantity,
         unit: item.unit,
         location: item.inventoryLocation,
-        status: item.status || 'received',
+        status: item.status,
         price: item.price,
         receivedOn: item.receivedAt,
         createdAt: item.receivedAt,
@@ -454,28 +430,26 @@ export class MaterialService {
       return buildPaginatedResponse(mapped, total, page, limit);
     }
 
-    // Combined: fetch from both collections
-    const halfLimit = Math.ceil(limit / 2);
-
+    // Combined: fetch enough docs from both to support sorting/slicing
     const [companyData, companyTotal, rawData, rawTotal] = await Promise.all([
       this.companyMaterialModel
         .find(companyFilter)
         .sort({ createdAt: -1 })
-        .skip(skip > 0 ? Math.floor(skip / 2) : 0)
-        .limit(halfLimit)
+        .limit(skip + limit)
+        .lean()
         .exec(),
       this.companyMaterialModel.countDocuments(companyFilter).exec(),
       this.rawMaterialModel
         .find(rawFilter)
         .sort({ receivedAt: -1 })
-        .skip(skip > 0 ? Math.floor(skip / 2) : 0)
-        .limit(halfLimit)
+        .limit(skip + limit)
+        .lean()
         .exec(),
       this.rawMaterialModel.countDocuments(rawFilter).exec(),
     ]);
 
     const combined = [
-      ...companyData.map((item: any) => ({
+      ...companyData.map((item: CompanyMaterialDocument) => ({
         _id: item._id,
         name: `${item.partNumber} - ${item.partName}`,
         partNumber: item.partNumber,
@@ -485,11 +459,11 @@ export class MaterialService {
         quantity: item.quantity,
         unit: item.unit,
         location: item.inventoryLocation,
-        status: item.status || 'received',
+        status: item.status,
         receivedOn: item.receivedOn || item.createdAt,
         createdAt: item.createdAt,
       })),
-      ...rawData.map((item: any) => ({
+      ...(rawData as RawMaterialDocument[]).map((item) => ({
         _id: item._id,
         name: item.materialName,
         partName: item.materialName,
@@ -499,7 +473,7 @@ export class MaterialService {
         quantity: item.quantity,
         unit: item.unit,
         location: item.inventoryLocation,
-        status: item.status || 'received',
+        status: item.status,
         price: item.price,
         receivedOn: item.receivedAt,
         createdAt: item.receivedAt,
@@ -509,8 +483,9 @@ export class MaterialService {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
 
+    const paginated = combined.slice(skip, skip + limit);
     const total = companyTotal + rawTotal;
-    return buildPaginatedResponse(combined, total, page, limit);
+    return buildPaginatedResponse(paginated, total, page, limit);
   }
 
   async getInventoryStats() {
@@ -523,51 +498,51 @@ export class MaterialService {
       .exec();
 
     const statusMap: Record<string, number> = {};
-    [...companyStatusAgg, ...rawStatusAgg].forEach((s: any) => {
-      const key = s._id || 'received';
-      statusMap[key] = (statusMap[key] || 0) + s.count;
-    });
+    [...companyStatusAgg, ...rawStatusAgg].forEach(
+      (s: { _id: string; count: number }) => {
+        const key = s._id || 'received';
+        statusMap[key] = (statusMap[key] || 0) + s.count;
+      },
+    );
 
     const totalCompany = await this.companyMaterialModel
       .countDocuments()
       .exec();
     const totalRaw = await this.rawMaterialModel.countDocuments().exec();
 
-    // Daily intake last 7 days
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
-    const now = new Date();
+    const { start, now } = this.getLast7DaysRange();
 
-    const companyDaily = await this.companyMaterialModel
-      .aggregate([
-        { $match: { createdAt: { $gte: sevenDaysAgo, $lte: now } } },
-        {
-          $group: {
-            _id: {
-              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+    const [companyDaily, rawDaily] = await Promise.all([
+      this.companyMaterialModel
+        .aggregate([
+          { $match: { createdAt: { $gte: start, $lte: now } } },
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+              },
+              count: { $sum: 1 },
             },
-            count: { $sum: 1 },
           },
-        },
-        { $sort: { _id: 1 } },
-      ])
-      .exec();
+        ])
+        .exec(),
+      this.rawMaterialModel
+        .aggregate([
+          { $match: { receivedAt: { $gte: start, $lte: now } } },
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: '%Y-%m-%d', date: '$receivedAt' },
+              },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .exec(),
+    ]);
 
-    const rawDaily = await this.rawMaterialModel
-      .aggregate([
-        { $match: { receivedAt: { $gte: sevenDaysAgo, $lte: now } } },
-        {
-          $group: {
-            _id: {
-              $dateToString: { format: '%Y-%m-%d', date: '$receivedAt' },
-            },
-            count: { $sum: 1 },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ])
-      .exec();
+    const companyMap = new Map(companyDaily.map((i) => [i._id, i.count]));
+    const rawMap = new Map(rawDaily.map((i) => [i._id, i.count]));
 
     const dailyCounts: {
       date: string;
@@ -579,12 +554,11 @@ export class MaterialService {
       const d = new Date();
       d.setDate(now.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
-      const cFound = companyDaily.find((item: any) => item._id === dateStr);
-      const rFound = rawDaily.find((item: any) => item._id === dateStr);
+
       dailyCounts.push({
         date: dateStr,
-        company: cFound ? cFound.count : 0,
-        raw: rFound ? rFound.count : 0,
+        company: companyMap.get(dateStr) || 0,
+        raw: rawMap.get(dateStr) || 0,
       });
     }
 
@@ -607,9 +581,7 @@ export class MaterialService {
         .findByIdAndUpdate(id, { $set: { status } }, { new: true })
         .exec();
       if (!updated) {
-        throw new NotFoundException(
-          `Company Material with ID ${id} not found`,
-        );
+        throw new NotFoundException(`Company Material with ID ${id} not found`);
       }
     } else if (type === 'raw') {
       const updated = await this.rawMaterialModel
@@ -634,7 +606,7 @@ export class MaterialService {
     // Import production orders model is not available here,
     // so we use company materials with dispatch-related statuses
     const skip = (page - 1) * limit;
-    const filter: Record<string, any> = {
+    const filter: QueryFilter<CompanyMaterialDocument> = {
       status: {
         $in: ['ready_for_dispatch', 'dispatched'],
       },
@@ -666,41 +638,35 @@ export class MaterialService {
   }
 
   async getDispatchStats() {
-    const now = new Date();
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const { start, now } = this.getLast7DaysRange();
 
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(now.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
-
-    const readyCount = await this.companyMaterialModel
-      .countDocuments({ status: 'ready_for_dispatch' })
-      .exec();
-    const dispatchedCount = await this.companyMaterialModel
-      .countDocuments({ status: 'dispatched' })
-      .exec();
+    const [readyCount, dispatchedCount] = await Promise.all([
+      this.companyMaterialModel
+        .countDocuments({ status: 'ready_for_dispatch' })
+        .exec(),
+      this.companyMaterialModel.countDocuments({ status: 'dispatched' }).exec(),
+    ]);
 
     const dailyAgg = await this.companyMaterialModel
       .aggregate([
         {
           $match: {
             status: 'dispatched',
-            updatedAt: { $gte: sevenDaysAgo, $lte: now },
+            updatedAt: { $gte: start, $lte: now },
           },
         },
         {
           $group: {
-            _id: {
-              $dateToString: { format: '%Y-%m-%d', date: '$updatedAt' },
-            },
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$updatedAt' } },
             count: { $sum: 1 },
             totalQuantity: { $sum: '$quantity' },
           },
         },
-        { $sort: { _id: 1 } },
       ])
       .exec();
+
+    // Optimize with Map
+    const aggMap = new Map(dailyAgg.map((i) => [i._id, i]));
 
     const dailyCounts: {
       date: string;
@@ -712,7 +678,8 @@ export class MaterialService {
       const d = new Date();
       d.setDate(now.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
-      const found = dailyAgg.find((item: any) => item._id === dateStr);
+      const found = aggMap.get(dateStr);
+
       dailyCounts.push({
         date: dateStr,
         count: found ? found.count : 0,
@@ -725,5 +692,13 @@ export class MaterialService {
       dispatched: dispatchedCount,
       dailyCounts,
     };
+  }
+
+  private getLast7DaysRange() {
+    const now = new Date();
+    const start = new Date();
+    start.setDate(now.getDate() - 7);
+    start.setHours(0, 0, 0, 0);
+    return { now, start };
   }
 }

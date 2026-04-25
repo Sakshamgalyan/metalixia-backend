@@ -15,7 +15,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import type { AuthenticatedRequest } from './interfaces/authenticated-request.interface';
+
 import { PaginatedResponse } from 'src/common/utils/pagination.util';
 import { RegisterUserDto } from 'src/dto/auth/registerUser.dto';
 import { LoginUserDto } from 'src/dto/auth/loginUser.dto';
@@ -50,7 +52,7 @@ export class AuthController {
 
     const cookieOptions = {
       httpOnly: true,
-      sameSite: isProduction ? 'none' : 'lax' as "none" | "lax" | "strict",
+      sameSite: isProduction ? 'none' : ('lax' as 'none' | 'lax' | 'strict'),
       secure: isProduction,
       path: '/',
     };
@@ -104,8 +106,9 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(AuthGuard)
-  async logout(@Req() req: any, @Res() res: Response) {
-    const userId = req.user['sub'];
+  async logout(@Req() req: AuthenticatedRequest, @Res() res: Response) {
+    const userId = req.user.sub;
+
     this.logger.log(`User ${userId} logging out`);
     await this.authService.logout(userId);
 
@@ -141,8 +144,11 @@ export class AuthController {
         message: 'Token refreshed successfully',
         status: 'success',
       });
-    } catch (error) {
-      this.logger.error(`Token refresh failed: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Token refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       res.clearCookie('access_token');
       res.clearCookie('refresh_token');
       throw error;
@@ -151,7 +157,7 @@ export class AuthController {
 
   @UseGuards(AuthGuard)
   @Get('profile')
-  async profile(@Req() req: any, @Res() res: Response) {
+  async profile(@Req() req: AuthenticatedRequest, @Res() res: Response) {
     try {
       const accessToken = req.cookies['access_token'];
       if (!accessToken) {
@@ -172,8 +178,11 @@ export class AuthController {
         message: 'Profile fetched successfully',
         status: 'success',
       });
-    } catch (error) {
-      this.logger.error(`Profile fetch failed: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Profile fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       res.clearCookie('access_token');
       res.clearCookie('refresh_token');
       throw error;
@@ -205,7 +214,8 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @Put('update-profile')
   async updateProfile(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
+
     @Body() updateProfileDto: UpdateProfileDto,
     @Res() res: Response,
   ) {
@@ -227,7 +237,8 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @Post('change-password')
   async changePassword(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
+
     @Body() changePasswordDto: ChangePasswordDto,
     @Res() res: Response,
   ) {
@@ -274,11 +285,12 @@ export class AuthController {
       this.logger.log(
         `Searching employees with query: '${search}', page: ${page}, limit: ${limit}`,
       );
-      const result: PaginatedResponse<User> = await this.authService.searchEmployees(
-        search,
-        Number(page),
-        Number(limit),
-      );
+      const result: PaginatedResponse<User> =
+        await this.authService.searchEmployees(
+          search,
+          Number(page),
+          Number(limit),
+        );
       this.logger.log(
         `Found ${result.data?.length || 0} employees for search query: '${search}'`,
       );
@@ -360,7 +372,8 @@ export class AuthController {
     }),
   )
   async uploadProfilePicture(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
+
     @UploadedFile() file: Express.Multer.File,
     @Res() res: Response,
   ) {
