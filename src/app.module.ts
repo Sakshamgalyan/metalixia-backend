@@ -17,6 +17,8 @@ import { CommonModule } from './common/common.module';
 import { CompanyModule } from './company/company.module';
 import { ProductionModule } from './production/production.module';
 import { QualityModule } from './quality/quality.module';
+import { SocketModule } from './socket/socket.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
 
 @Module({
   imports: [
@@ -49,6 +51,8 @@ import { QualityModule } from './quality/quality.module';
     CompanyModule,
     ProductionModule,
     QualityModule,
+    SocketModule,
+    MonitoringModule,
   ],
   controllers: [AppController],
   providers: [AppService],
