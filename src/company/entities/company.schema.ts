@@ -39,7 +39,7 @@ export class Company {
   @Prop({ type: [PartItemSchema], default: [] })
   parts: (PartItem & { _id: Types.ObjectId })[];
 
-  @Prop({ default: false })
+  @Prop({ default: true })
   isActive: boolean;
 }
 
