@@ -46,7 +46,12 @@ export class MaterialService {
     return createdMaterial.save();
   }
 
-  async getRawMaterials(page: number, limit: number, search?: string) {
+  async getRawMaterials(
+    page: number,
+    limit: number,
+    search?: string,
+    status?: string,
+  ) {
     const skip = (page - 1) * limit;
     const filter: QueryFilter<RawMaterialDocument> = {};
     if (search) {
@@ -56,10 +61,16 @@ export class MaterialService {
       ];
     }
 
+    if (status === 'received') {
+      filter.isReceived = true;
+    } else if (status === 'pending') {
+      filter.isReceived = false;
+    }
+
     const [data, total] = await Promise.all([
       this.rawMaterialModel
         .find(filter)
-        .sort({ receivedAt: -1 })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .exec(),
@@ -197,26 +208,62 @@ export class MaterialService {
     return createdMaterial.save();
   }
 
-  async getCompanyMaterials(page: number, limit: number, search?: string) {
+  async getCompanyMaterials(
+    page: number,
+    limit: number,
+    search?: string,
+    status?: string,
+  ) {
     const skip = (page - 1) * limit;
-    const filter: QueryFilter<CompanyMaterialDocument> = {};
+    const filter: any = {};
     if (search) {
       filter.$or = [
-        { materialName: { $regex: search, $options: 'i' } },
         { companyName: { $regex: search, $options: 'i' } },
+        { partName: { $regex: search, $options: 'i' } },
+        { partNumber: { $regex: search, $options: 'i' } },
         { inventoryLocation: { $regex: search, $options: 'i' } },
       ];
     }
 
+    if (status === 'received') {
+      filter.isReceived = true;
+    } else if (status === 'pending') {
+      filter.isReceived = false;
+    }
+
+    const pipeline: any[] = [
+      { $match: filter },
+      { $sort: { createdAt: -1 } },
+      {
+        $addFields: {
+          companyObjectId: { $toObjectId: '$companyId' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'companies',
+          localField: 'companyObjectId',
+          foreignField: '_id',
+          as: 'companyInfo',
+        },
+      },
+      {
+        $addFields: {
+          companyIsActive: {
+            $ifNull: [{ $arrayElemAt: ['$companyInfo.isActive', 0] }, true],
+          },
+        },
+      },
+      { $project: { companyObjectId: 0, companyInfo: 0 } },
+    ];
+
     const [data, total] = await Promise.all([
       this.companyMaterialModel
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
+        .aggregate([...pipeline, { $skip: skip }, { $limit: Number(limit) }])
         .exec(),
       this.companyMaterialModel.countDocuments(filter).exec(),
     ]);
+
     return buildPaginatedResponse(data, total, page, limit);
   }
 
@@ -319,6 +366,7 @@ export class MaterialService {
             _id: { $dateToString: { format: '%Y-%m-%d', date: '$receivedAt' } },
             count: { $sum: 1 },
             totalValue: { $sum: { $multiply: ['$quantity', '$price'] } },
+            totalQuantity: { $sum: '$quantity' },
           },
         },
       ])
@@ -330,6 +378,7 @@ export class MaterialService {
       date: string;
       count: number;
       totalValue: number;
+      totalQuantity: number;
     }[] = [];
 
     for (let i = 6; i >= 0; i--) {
@@ -342,6 +391,7 @@ export class MaterialService {
         date: dateStr,
         count: found ? found.count : 0,
         totalValue: found ? found.totalValue : 0,
+        totalQuantity: found ? found.totalQuantity : 0,
       });
     }
 
@@ -350,14 +400,33 @@ export class MaterialService {
       (sum, d) => sum + d.totalValue,
       0,
     );
+    const totalQuantityThisWeek = dailyCounts.reduce(
+      (sum, d) => sum + d.totalQuantity,
+      0,
+    );
 
     const activeSourcesAgg = await this.rawMaterialModel
       .aggregate([
-        { $match: { receivedAt: { $gte: start, $lte: now } } },
+        { $match: { createdAt: { $gte: start, $lte: now } } },
         { $group: { _id: '$source' } },
         { $count: 'count' },
       ])
       .exec();
+
+    const [pendingThisWeek, receivedThisWeek] = await Promise.all([
+      this.rawMaterialModel
+        .countDocuments({
+          createdAt: { $gte: start, $lte: now },
+          isReceived: false,
+        })
+        .exec(),
+      this.rawMaterialModel
+        .countDocuments({
+          createdAt: { $gte: start, $lte: now },
+          isReceived: true,
+        })
+        .exec(),
+    ]);
 
     const activeSources =
       activeSourcesAgg.length > 0 ? activeSourcesAgg[0].count : 0;
@@ -366,7 +435,10 @@ export class MaterialService {
       dailyCounts,
       totalThisWeek,
       totalInvestmentThisWeek,
+      totalQuantityThisWeek,
       activeSources,
+      pendingThisWeek,
+      receivedThisWeek,
     };
   }
 
@@ -417,15 +489,43 @@ export class MaterialService {
       0,
     );
 
-    const readyCount = await this.companyMaterialModel
-      .countDocuments({ status: 'ready_for_dispatch' })
-      .exec();
+    const [readyCount, activeCompaniesAgg, pendingThisWeek, receivedThisWeek] =
+      await Promise.all([
+        this.companyMaterialModel
+          .countDocuments({ status: 'ready_for_dispatch' })
+          .exec(),
+        this.companyMaterialModel
+          .aggregate([
+            { $match: { createdAt: { $gte: start, $lte: now } } },
+            { $group: { _id: '$companyId' } },
+            { $count: 'count' },
+          ])
+          .exec(),
+        this.companyMaterialModel
+          .countDocuments({
+            createdAt: { $gte: start, $lte: now },
+            isReceived: false,
+          })
+          .exec(),
+        this.companyMaterialModel
+          .countDocuments({
+            createdAt: { $gte: start, $lte: now },
+            isReceived: true,
+          })
+          .exec(),
+      ]);
+
+    const activeCompanies =
+      activeCompaniesAgg.length > 0 ? activeCompaniesAgg[0].count : 0;
 
     return {
       dailyCounts,
       totalThisWeek,
       totalQuantityThisWeek,
       readyCount,
+      activeCompanies,
+      pendingThisWeek,
+      receivedThisWeek,
     };
   }
 

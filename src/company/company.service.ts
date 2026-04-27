@@ -31,7 +31,12 @@ export class CompanyService {
     return createdCompany.save();
   }
 
-  async getCompanies(page: number, limit: number, search?: string) {
+  async getCompanies(
+    page: number,
+    limit: number,
+    search?: string,
+    status?: string,
+  ) {
     const skip = (page - 1) * limit;
     const filter: any = {};
     if (search) {
@@ -40,6 +45,12 @@ export class CompanyService {
         { contactPerson: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
       ];
+    }
+
+    if (status === 'active') {
+      filter.isActive = true;
+    } else if (status === 'inactive') {
+      filter.isActive = false;
     }
 
     const [data, total] = await Promise.all([
@@ -190,7 +201,12 @@ export class CompanyService {
     }
   }
 
-  async getAllParts(page: number = 1, limit: number = 10, search?: string) {
+  async getAllParts(
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    status?: string,
+  ) {
     const companies = await this.companyModel.find().lean().exec();
 
     if (!companies.length) {
@@ -202,14 +218,22 @@ export class CompanyService {
       };
     }
 
-    // Flatten parts
+    // Flatten and filter parts
     let allParts = companies.reduce((acc: any[], company: any) => {
       if (company.parts && Array.isArray(company.parts)) {
-        const companyParts = company.parts.map((p: any) => ({
+        let companyParts = company.parts.map((p: any) => ({
           ...p,
           companyId: company._id,
           companyName: company.companyName,
         }));
+
+        // Filter by status if provided
+        if (status === 'active') {
+          companyParts = companyParts.filter((p: any) => p.isActive === true);
+        } else if (status === 'inactive') {
+          companyParts = companyParts.filter((p: any) => p.isActive === false);
+        }
+
         return acc.concat(companyParts);
       }
       return acc;

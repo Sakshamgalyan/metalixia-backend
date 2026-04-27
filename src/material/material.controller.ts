@@ -214,11 +214,13 @@ export class MaterialController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
     @Query('search') search?: string,
+    @Query('status') status?: string,
   ) {
     const res = await this.materialService.getRawMaterials(
       Number(page),
       Number(limit),
       search,
+      status,
     );
     return res;
   }
@@ -305,11 +307,13 @@ export class MaterialController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
     @Query('search') search?: string,
+    @Query('status') status?: string,
   ) {
     const res = await this.materialService.getCompanyMaterials(
       Number(page),
       Number(limit),
       search,
+      status,
     );
     return res;
   }

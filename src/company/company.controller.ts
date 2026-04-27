@@ -44,11 +44,13 @@ export class CompanyController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
     @Query('search') search?: string,
+    @Query('status') status?: string,
   ) {
     const res = await this.companyService.getCompanies(
       Number(page),
       Number(limit),
       search,
+      status,
     );
     return res;
   }
@@ -93,8 +95,9 @@ export class CompanyController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('search') search?: string,
+    @Query('status') status?: string,
   ) {
-    return await this.companyService.getAllParts(page, limit, search);
+    return await this.companyService.getAllParts(page, limit, search, status);
   }
 
   @Roles(Role.SUPER_ADMIN, Role.REPORT_ADMIN, Role.MANAGER)
