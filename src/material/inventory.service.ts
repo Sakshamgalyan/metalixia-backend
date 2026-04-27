@@ -108,33 +108,60 @@ export class InventoryService {
   }
 
   async getInventoryStats() {
-    const totalItems = await this.inventoryModel.countDocuments().exec();
-    const totalCompany = await this.inventoryModel
-      .countDocuments({ sourceType: 'company' })
-      .exec();
-    const totalRaw = await this.inventoryModel
-      .countDocuments({ sourceType: 'raw' })
-      .exec();
+    const { start, now } = this.getLast7DaysRange();
 
-    const lowStockCount = await this.inventoryModel
-      .countDocuments({
-        $expr: { $lte: ['$quantity', '$minStock'] },
-        quantity: { $gt: 0 },
-      })
-      .exec();
-
-    const outOfStockCount = await this.inventoryModel
-      .countDocuments({ quantity: 0 })
-      .exec();
-
-    const statusMap = await this.inventoryModel.aggregate([
-      { $group: { _id: '$status', count: { $sum: 1 } } },
+    const [
+      totalItems,
+      totalCompany,
+      totalRaw,
+      lowStockCount,
+      outOfStockCount,
+      statusMap,
+      dailyAgg,
+    ] = await Promise.all([
+      this.inventoryModel.countDocuments().exec(),
+      this.inventoryModel.countDocuments({ sourceType: 'company' }).exec(),
+      this.inventoryModel.countDocuments({ sourceType: 'raw' }).exec(),
+      this.inventoryModel
+        .countDocuments({
+          $expr: { $lte: ['$quantity', '$minStock'] },
+          quantity: { $gt: 0 },
+        })
+        .exec(),
+      this.inventoryModel.countDocuments({ quantity: 0 }).exec(),
+      this.inventoryModel.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]),
+      this.inventoryModel.aggregate([
+        { $match: { createdAt: { $gte: start, $lte: now } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
     ]);
 
     const formattedStatusMap = statusMap.reduce((acc, curr) => {
       acc[curr._id] = curr.count;
       return acc;
     }, {});
+
+    const aggMap = new Map(dailyAgg.map((i) => [i._id, i]));
+    const dailyCounts: { date: string; count: number }[] = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const found = aggMap.get(dateStr);
+
+      dailyCounts.push({
+        date: dateStr,
+        count: found ? found.count : 0,
+      });
+    }
 
     return {
       totalItems,
@@ -143,7 +170,16 @@ export class InventoryService {
       lowStockCount,
       outOfStockCount,
       statusMap: formattedStatusMap,
+      dailyCounts,
     };
+  }
+
+  private getLast7DaysRange() {
+    const now = new Date();
+    const start = new Date();
+    start.setDate(now.getDate() - 7);
+    start.setHours(0, 0, 0, 0);
+    return { now, start };
   }
 
   async getInventoryForExport(filters: {

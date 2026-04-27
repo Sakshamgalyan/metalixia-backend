@@ -358,12 +358,12 @@ export class MaterialService {
       .aggregate([
         {
           $match: {
-            receivedAt: { $gte: start, $lte: now },
+            createdAt: { $gte: start, $lte: now },
           },
         },
         {
           $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$receivedAt' } },
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
             count: { $sum: 1 },
             totalValue: { $sum: { $multiply: ['$quantity', '$price'] } },
             totalQuantity: { $sum: '$quantity' },
@@ -417,13 +417,13 @@ export class MaterialService {
       this.rawMaterialModel
         .countDocuments({
           createdAt: { $gte: start, $lte: now },
-          isReceived: false,
+          status: 'pending',
         })
         .exec(),
       this.rawMaterialModel
         .countDocuments({
           createdAt: { $gte: start, $lte: now },
-          isReceived: true,
+          status: 'received',
         })
         .exec(),
     ]);
@@ -504,13 +504,13 @@ export class MaterialService {
         this.companyMaterialModel
           .countDocuments({
             createdAt: { $gte: start, $lte: now },
-            isReceived: false,
+            status: 'pending',
           })
           .exec(),
         this.companyMaterialModel
           .countDocuments({
             createdAt: { $gte: start, $lte: now },
-            isReceived: true,
+            status: 'received',
           })
           .exec(),
       ]);
