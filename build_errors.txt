@@ -1,0 +1,36 @@
+
+> metalixia-backend@0.0.1 build
+> nest build
+
+[96msrc/auth/auth.service.ts[0m:[93m198[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType 'PaginatedResponse<unknown>' is not assignable to type 'PaginatedResponse<User>'.
+  Type 'unknown' is not assignable to type 'User'.
+
+[7m198[0m     return this.userService.searchEmployees(searchTerm, page, limit);
+[7m   [0m [91m    ~~~~~~[0m
+[96msrc/quality/quality.service.ts[0m:[93m28[0m:[93m5[0m - [91merror[0m[90m TS2300: [0mDuplicate identifier 'result'.
+
+[7m28[0m     result?: string,
+[7m  [0m [91m    ~~~~~~[0m
+[96msrc/quality/quality.service.ts[0m:[93m45[0m:[93m11[0m - [91merror[0m[90m TS2300: [0mDuplicate identifier 'result'.
+
+[7m45[0m     const result = await this.qualityCheckModel.aggregate([
+[7m  [0m [91m          ~~~~~~[0m
+[96msrc/quality/quality.service.ts[0m:[93m61[0m:[93m18[0m - [91merror[0m[90m TS18048: [0m'result' is possibly 'undefined'.
+
+[7m61[0m     const data = result[0].data;
+[7m  [0m [91m                 ~~~~~~[0m
+[96msrc/quality/quality.service.ts[0m:[93m61[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'data' does not exist on type 'string'.
+
+[7m61[0m     const data = result[0].data;
+[7m  [0m [91m                           ~~~~[0m
+[96msrc/quality/quality.service.ts[0m:[93m62[0m:[93m19[0m - [91merror[0m[90m TS18048: [0m'result' is possibly 'undefined'.
+
+[7m62[0m     const total = result[0].total[0]?.count || 0;
+[7m  [0m [91m                  ~~~~~~[0m
+[96msrc/quality/quality.service.ts[0m:[93m62[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'total' does not exist on type 'string'.
+
+[7m62[0m     const total = result[0].total[0]?.count || 0;
+[7m  [0m [91m                            ~~~~~[0m
+
+Found 7 error(s).
+

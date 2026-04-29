@@ -110,12 +110,20 @@ export class UserService {
 
     const size = limit || 10;
     const skip = (pageNo - 1) * size;
-    const users = await this.userModel
-      .find(query)
-      .skip(skip)
-      .limit(size)
-      .exec();
-    const total = await this.userModel.countDocuments(query);
+    const result = await this.userModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: size }],
+          total: [{ $count: 'count' }],
+        },
+      },
+    ]);
+
+    const users = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     const data = users.map((user) => {
       return {
@@ -270,14 +278,33 @@ export class UserService {
     }
 
     const skip = (page - 1) * limit;
-    const employees = await this.userModel
-      .find(query)
-      .select('name email employeeId post profilePicture message')
-      .skip(skip)
-      .limit(limit)
-      .exec();
+    const result = await this.userModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $project: {
+                name: 1,
+                email: 1,
+                employeeId: 1,
+                post: 1,
+                profilePicture: 1,
+                message: 1,
+              },
+            },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
+    ]);
 
-    const total = await this.userModel.countDocuments(query);
+    const employees = result[0].data as User[];
+    const total = result[0].total[0]?.count || 0;
 
     this.logger.log(
       `Found ${employees.length} employees for search '${searchTerm}' (total: ${total})`,

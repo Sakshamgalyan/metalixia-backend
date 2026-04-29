@@ -164,15 +164,24 @@ export class EmailService {
     const skip = (page - 1) * limit;
     const query = { senderId };
 
-    const [emails, total] = await Promise.all([
-      this.emailModel
-        .find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.emailModel.countDocuments(query).exec(),
+    const result = await this.emailModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const emails = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     this.logger.log(
       `Found ${emails.length} emails for sender ${senderId} (total: ${total})`,

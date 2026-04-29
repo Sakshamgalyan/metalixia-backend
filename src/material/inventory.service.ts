@@ -47,16 +47,24 @@ export class InventoryService {
       filter.status = status;
     }
 
-    const [data, total] = await Promise.all([
-      this.inventoryModel
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean()
-        .exec(),
-      this.inventoryModel.countDocuments(filter).exec(),
+    const result = await this.inventoryModel.aggregate([
+      {
+        $match: filter,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const data = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     return buildPaginatedResponse(data, total, page, limit);
   }
