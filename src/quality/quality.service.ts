@@ -42,15 +42,24 @@ export class QualityService {
       filter.result = result;
     }
 
-    const [data, total] = await Promise.all([
-      this.qualityCheckModel
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.qualityCheckModel.countDocuments(filter).exec(),
+    const aggregateResult = await this.qualityCheckModel.aggregate([
+      {
+        $match: filter,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const data = aggregateResult[0].data;
+    const total = aggregateResult[0].total[0]?.count || 0;
 
     return buildPaginatedResponse(data, total, page, limit);
   }

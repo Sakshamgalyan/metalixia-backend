@@ -59,15 +59,24 @@ export class EmployeeService {
     const skip = (page - 1) * limit;
     const query: any = { isDeleted: false, employeeId: id };
 
-    const [reports, total] = await Promise.all([
-      this.reportModel
-        .find(query)
-        .sort({ uploadedTime: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.reportModel.countDocuments(query).exec(),
+    const result = await this.reportModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { uploadedTime: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const reports = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     this.logger.log(
       `Found ${reports.length} reports for employee ${id} (total: ${total})`,
@@ -88,15 +97,21 @@ export class EmployeeService {
   async getAllReports(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
 
-    const [reports, total] = await Promise.all([
-      this.reportModel
-        .find()
-        .sort({ uploadedTime: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.reportModel.countDocuments().exec(),
+    const result = await this.reportModel.aggregate([
+      {
+        $facet: {
+          data: [
+            { $sort: { uploadedTime: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const reports = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     const employees = await this.userService.getAllEmployees(
       reports.map((report) => report.employeeId),
@@ -248,15 +263,24 @@ export class EmployeeService {
     const skip = (page - 1) * limit;
     const query: any = { employeeId, isDeleted: false };
 
-    const [reports, total] = await Promise.all([
-      this.reportModel
-        .find(query)
-        .sort({ uploadedTime: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.reportModel.countDocuments(query).exec(),
+    const result = await this.reportModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { uploadedTime: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const reports = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     this.logger.log(
       `Found ${reports.length} reports for employeeId: ${employeeId} (total: ${total})`,
@@ -268,15 +292,24 @@ export class EmployeeService {
     this.logger.log(`Fetching mailed reports: page ${page}, limit: ${limit}`);
     const skip = (page - 1) * limit;
     const query: any = { status: 'mailed', isDeleted: false };
-    const [reports, total] = await Promise.all([
-      this.reportModel
-        .find(query)
-        .sort({ uploadedTime: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.reportModel.countDocuments(query).exec(),
+    const result = await this.reportModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { uploadedTime: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const reports = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     this.logger.log(`Found ${reports.length} mailed reports (total: ${total})`);
     const reportData = reports.map((report) => ({

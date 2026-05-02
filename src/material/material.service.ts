@@ -67,15 +67,24 @@ export class MaterialService {
       filter.isReceived = false;
     }
 
-    const [data, total] = await Promise.all([
-      this.rawMaterialModel
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.rawMaterialModel.countDocuments(filter).exec(),
+    const result = await this.rawMaterialModel.aggregate([
+      {
+        $match: filter,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const data = result[0].data;
+    const total = result[0].total[0]?.count || 0;
     return buildPaginatedResponse(data, total, page, limit);
   }
 
@@ -257,12 +266,18 @@ export class MaterialService {
       { $project: { companyObjectId: 0, companyInfo: 0 } },
     ];
 
-    const [data, total] = await Promise.all([
-      this.companyMaterialModel
-        .aggregate([...pipeline, { $skip: skip }, { $limit: Number(limit) }])
-        .exec(),
-      this.companyMaterialModel.countDocuments(filter).exec(),
+    const result = await this.companyMaterialModel.aggregate([
+      ...pipeline,
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: Number(limit) }],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const data = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     return buildPaginatedResponse(data, total, page, limit);
   }
@@ -358,12 +373,12 @@ export class MaterialService {
       .aggregate([
         {
           $match: {
-            receivedAt: { $gte: start, $lte: now },
+            createdAt: { $gte: start, $lte: now },
           },
         },
         {
           $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$receivedAt' } },
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
             count: { $sum: 1 },
             totalValue: { $sum: { $multiply: ['$quantity', '$price'] } },
             totalQuantity: { $sum: '$quantity' },
@@ -417,13 +432,13 @@ export class MaterialService {
       this.rawMaterialModel
         .countDocuments({
           createdAt: { $gte: start, $lte: now },
-          isReceived: false,
+          status: 'pending',
         })
         .exec(),
       this.rawMaterialModel
         .countDocuments({
           createdAt: { $gte: start, $lte: now },
-          isReceived: true,
+          status: 'received',
         })
         .exec(),
     ]);
@@ -504,13 +519,13 @@ export class MaterialService {
         this.companyMaterialModel
           .countDocuments({
             createdAt: { $gte: start, $lte: now },
-            isReceived: false,
+            status: 'pending',
           })
           .exec(),
         this.companyMaterialModel
           .countDocuments({
             createdAt: { $gte: start, $lte: now },
-            isReceived: true,
+            status: 'received',
           })
           .exec(),
       ]);
@@ -593,15 +608,24 @@ export class MaterialService {
       ];
     }
 
-    const [data, total] = await Promise.all([
-      this.companyMaterialModel
-        .find(filter)
-        .sort({ updatedAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.companyMaterialModel.countDocuments(filter).exec(),
+    const result = await this.companyMaterialModel.aggregate([
+      {
+        $match: filter,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { updatedAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const data = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     return buildPaginatedResponse(data, total, page, limit);
   }

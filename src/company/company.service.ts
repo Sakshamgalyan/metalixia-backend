@@ -53,15 +53,24 @@ export class CompanyService {
       filter.isActive = false;
     }
 
-    const [data, total] = await Promise.all([
-      this.companyModel
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.companyModel.countDocuments(filter).exec(),
+    const result = await this.companyModel.aggregate([
+      {
+        $match: filter,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const data = result[0].data;
+    const total = result[0].total[0]?.count || 0;
     return buildPaginatedResponse(data, total, page, limit);
   }
 

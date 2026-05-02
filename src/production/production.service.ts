@@ -110,15 +110,24 @@ export class ProductionService {
       filter.status = status;
     }
 
-    const [data, total] = await Promise.all([
-      this.productionOrderModel
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.productionOrderModel.countDocuments(filter).exec(),
+    const result = await this.productionOrderModel.aggregate([
+      {
+        $match: filter,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const data = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     return buildPaginatedResponse(data, total, page, limit);
   }

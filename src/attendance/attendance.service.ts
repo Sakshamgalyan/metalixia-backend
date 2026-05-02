@@ -48,15 +48,24 @@ export class AttendanceService {
       query.employeeId = employeeId;
     }
 
-    const [attendances, total] = await Promise.all([
-      this.attendanceModel
-        .find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.attendanceModel.countDocuments(query).exec(),
+    const result = await this.attendanceModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const attendances = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     const employeeIds = attendances.map((p) => p.employeeId);
     const uploaderIds = attendances.map((p) => p.uploadedBy);

@@ -48,15 +48,24 @@ export class PayslipService {
       query.employeeId = employeeId;
     }
 
-    const [payslips, total] = await Promise.all([
-      this.payslipModel
-        .find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.payslipModel.countDocuments(query).exec(),
+    const result = await this.payslipModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const payslips = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     const employeeIds = payslips.map((p) => p.employeeId);
     const uploaderIds = payslips.map((p) => p.uploadedBy);
@@ -91,15 +100,24 @@ export class PayslipService {
     const skip = (page - 1) * limit;
     const query: Record<string, unknown> = { isDeleted: false };
 
-    const [payslips, total] = await Promise.all([
-      this.payslipModel
-        .find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.payslipModel.countDocuments(query).exec(),
+    const result = await this.payslipModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
     ]);
+
+    const payslips = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     const employeeIds = payslips.map((p) => p.employeeId);
     const uploaderIds = payslips.map((p) => p.uploadedBy);
